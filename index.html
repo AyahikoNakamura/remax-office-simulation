@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RE/MAX オフィス経営シミュレーション</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-view="simulation">
+    <main class="app-shell">
+      <section class="hero">
+        <div class="hero__media" aria-hidden="true"></div>
+        <div class="hero__content">
+          <p class="eyebrow">RE/MAX Hokkaido</p>
+          <h1><span>RE/MAX</span><span>オフィス経営</span><span>シミュレーション</span></h1>
+          <p>
+            <span>目標利益、オーナー給与、ランク別採用計画を入力しながら</span><span>オフィス経営に必要な取引額をその場で見える化します。</span>
+          </p>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <nav class="view-tabs" aria-label="表示切替">
+          <button class="view-tab is-active" data-view-tab="simulation" type="button">シミュレーション</button>
+          <button class="view-tab" data-view-tab="presentation" type="button">プレゼン</button>
+          <button class="view-tab" data-view-tab="actual" type="button">実績分析</button>
+          <button class="view-tab" data-view-tab="agents" type="button">登録エージェント</button>
+        </nav>
+
+        <section class="results" aria-label="シミュレーション結果">
+          <section class="presentation-panel" aria-labelledby="presentationTitle">
+            <div class="presentation-stage">
+              <div class="presentation-stage__top">
+                <div>
+                  <p class="eyebrow">Seminar Mode</p>
+                  <h2 id="presentationTitle">RE/MAXオフィス経営の魅力を数字で見せる</h2>
+                </div>
+                <div class="presentation-controls" aria-label="プレゼンフェーズ切替">
+                  <button class="presentation-step" id="presentationPrev" type="button" aria-label="前のフェーズ">←</button>
+                  <button class="presentation-step" id="presentationNext" type="button" aria-label="次のフェーズ">→</button>
+                </div>
+              </div>
+
+              <div class="presentation-phase-row" id="presentationPhaseRow" role="group" aria-label="利益フェーズ"></div>
+
+              <div class="presentation-hero-grid">
+                <article class="presentation-main-metric">
+                  <span id="presentationPhaseLabel">利益300万円</span>
+                  <strong id="presentationProfit">0万円</strong>
+                  <small id="presentationProfitNote">年間営業利益</small>
+                </article>
+                <article>
+                  <span>採用人数</span>
+                  <strong id="presentationAgents">0名</strong>
+                  <small>ランク別採用計画の合計</small>
+                </article>
+                <article>
+                  <span>Ag1人あたり必要取引額</span>
+                  <strong id="presentationPerAgent">0万円</strong>
+                  <small>目標利益から逆算</small>
+                </article>
+                <article>
+                  <span>5年累計利益</span>
+                  <strong id="presentationCumulative">0万円</strong>
+                  <small>採用純増・生産性成長を反映</small>
+                </article>
+              </div>
+
+              <div class="presentation-story">
+                <article>
+                  <span>この場面で伝えること</span>
+                  <p id="presentationTalk">目標利益、採用人数、必要取引額の関係を見せます。</p>
+                </article>
+                <article>
+                  <span>採用ミックス</span>
+                  <div class="presentation-mix" id="presentationMix"></div>
+                </article>
+              </div>
+
+              <div class="presentation-bottom-grid">
+                <article>
+                  <span>必要年間オフィス粗利</span>
+                  <strong id="presentationRequiredRevenue">0万円</strong>
+                  <small>年間固定費 + 目標利益</small>
+                </article>
+                <article>
+                  <span>現在プランの年間オフィス粗利</span>
+                  <strong id="presentationAnnualRevenue">0万円</strong>
+                  <small>取引粗利 + オーナー粗利 + Agフィー</small>
+                </article>
+                <article>
+                  <span>目標利益との差額</span>
+                  <strong id="presentationGap">0万円</strong>
+                  <small>現在プランの営業利益 - 目標利益</small>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="goal-panel" aria-labelledby="goalTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Goal</p>
+                <h2 id="goalTitle">最初に決める目標</h2>
+              </div>
+              <button class="reset-button" id="resetButton" type="button">初期値に戻す</button>
+            </div>
+
+            <div class="preset-row preset-row--phase" role="group" aria-label="利益フェーズ">
+              <button class="preset" data-preset="current" type="button"><strong>現在の状況</strong><small>現状確認用のページ</small></button>
+              <button class="preset is-active" data-preset="phase300" type="button"><strong>300万</strong><small>新規独立・未経験の立ち上げ</small></button>
+              <button class="preset" data-preset="phase500" type="button"><strong>500万</strong><small>少人数・固定費軽めのモデル</small></button>
+              <button class="preset" data-preset="phase1000" type="button"><strong>1,000万</strong><small>10名体制の成長期モデル</small></button>
+              <button class="preset" data-preset="phase3000" type="button"><strong>3,000万</strong><small>採用力で伸ばす拡大期モデル</small></button>
+            </div>
+
+            <div class="goal-grid">
+              <label class="field field--number field--target">
+                <span>年間目標利益</span>
+                <strong><output id="targetProfitOut">300</output> 万円</strong>
+                <input id="targetProfit" type="number" min="0" max="5000" step="100" value="300" inputmode="numeric" />
+              </label>
+            </div>
+
+          </section>
+
+          <section class="actual-panel" aria-labelledby="actualTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Actuals</p>
+                <h2 id="actualTitle">売上分析</h2>
+              </div>
+            </div>
+
+            <section class="analysis-section" aria-labelledby="importTitle">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Import</p>
+                  <h3 id="importTitle">売上CSV取込</h3>
+                </div>
+                <span>売上CSVから年度別・エージェント別に売上を集計します</span>
+              </div>
+              <div class="import-grid">
+                <article>
+                  <strong>売上CSV</strong>
+                  <span>入金明細から各エージェントの月別売上と件数を集計します。</span>
+                  <label class="file-button">
+                    <input id="actualCsvInput" type="file" accept=".csv,text/csv" />
+                    売上CSVを選択
+                  </label>
+                  <button class="secondary-file-button" id="actualCsvClearButton" type="button">読込データをクリア</button>
+                </article>
+              </div>
+              <div class="csv-import-status" id="actualCsvImportStatus"></div>
+            </section>
+
+            <div class="actual-empty" id="actualEmpty">
+              <strong>売上CSVを読み込むと、年度ごとのエージェント別売上一覧が表示されます。</strong>
+              <span>登録エージェントの年間フィー一覧と同じように、月別・年間合計で確認できます。</span>
+            </div>
+
+            <div class="actual-loaded" id="actualLoaded" hidden>
+              <div class="actual-periods" id="actualPeriods" role="group" aria-label="実績表示期間"></div>
+
+              <section class="analysis-section" aria-labelledby="dashboardTitle">
+                <div class="section-title">
+                  <div>
+                    <p class="eyebrow">Dashboard</p>
+                    <h3 id="dashboardTitle">分析ダッシュボード</h3>
+                  </div>
+                </div>
+                <div class="actual-summary" id="actualSummary"></div>
+                <div class="insight-note" id="dashboardSummary"></div>
+              </section>
+
+              <section class="analysis-section" aria-labelledby="salesAnnualTitle">
+                <div class="section-title">
+                  <div>
+                        <p class="eyebrow">Sales</p>
+                    <h3 id="salesAnnualTitle">年間売上一覧</h3>
+                  </div>
+                  <span>売上高と件数をエージェント別・月別に表示します</span>
+                </div>
+                <div class="table-wrap">
+                  <table class="actual-table agent-annual-table actual-sales-table">
+                      <thead>
+                        <tr>
+                          <th>エージェント</th>
+                          <th>区分</th>
+                          <th>1月</th>
+                          <th>2月</th>
+                          <th>3月</th>
+                          <th>4月</th>
+                          <th>5月</th>
+                          <th>6月</th>
+                          <th>7月</th>
+                          <th>8月</th>
+                          <th>9月</th>
+                          <th>10月</th>
+                          <th>11月</th>
+                          <th>12月</th>
+                          <th>年間合計</th>
+                        </tr>
+                      </thead>
+                    <tbody id="actualAnnualSalesRows"></tbody>
+                    </table>
+                  </div>
+              </section>
+
+              <section id="managementSummary" hidden></section>
+              <div id="accountingSummary" hidden></div>
+              <div id="nextDataSummary" hidden></div>
+              <input id="expenseCsvInput" type="file" accept=".csv,text/csv" hidden />
+            </div>
+          </section>
+
+          <section class="agent-register-panel" aria-labelledby="agentRegisterPanelTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Agent Register</p>
+                <h2 id="agentRegisterPanelTitle">登録エージェント</h2>
+              </div>
+            </div>
+
+            <section class="analysis-section agent-register-section" aria-labelledby="agentRegisterTitle">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Register</p>
+                  <h3 id="agentRegisterTitle">エージェント登録</h3>
+                </div>
+                <span>契約月に登録料、契約月から月額フィー、翌年以降の契約月に更新料を集計します</span>
+              </div>
+
+              <form class="agent-register-form" id="agentRegisterForm">
+                <label class="field field--number">
+                  <span>エージェント名</span>
+                  <input id="agentNameInput" type="text" autocomplete="off" required />
+                </label>
+                <label class="field field--number">
+                  <span>ランク</span>
+                  <select id="agentRankInput" required>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C" selected>C</option>
+                    <option value="D">D</option>
+                  </select>
+                </label>
+                <label class="field field--number">
+                  <span>宅建区分</span>
+                  <select id="agentLicenseInput" required>
+                    <option value="宅建士" selected>宅建士</option>
+                    <option value="宅建士（専任）">宅建士（専任）</option>
+                    <option value="無">無</option>
+                  </select>
+                </label>
+                <label class="field field--number">
+                  <span>初回フィー</span>
+                  <input id="agentFeeInput" type="number" min="0" step="1000" value="34000" inputmode="numeric" required />
+                </label>
+                <label class="field field--number">
+                  <span>登録料額</span>
+                  <input id="agentRegistrationInput" type="number" min="0" step="1000" value="60000" inputmode="numeric" />
+                </label>
+                <label class="field field--number">
+                  <span>コミッション率</span>
+                  <input id="agentCommissionInput" type="number" min="0" max="100" step="1" value="60" inputmode="decimal" readonly required />
+                </label>
+                <label class="field field--number">
+                  <span>更新料額</span>
+                  <input id="agentRenewalInput" type="number" min="0" step="1000" value="0" inputmode="numeric" />
+                </label>
+                <label class="field field--number">
+                  <span>契約締結月</span>
+                  <input id="agentContractInput" type="month" required />
+                </label>
+                <button class="file-button agent-add-button" type="submit">登録</button>
+              </form>
+
+              <section class="head-office-payment-section" aria-labelledby="headOfficePaymentTitle">
+                <div class="section-title">
+                  <div>
+                    <p class="eyebrow">Head Office Cost</p>
+                    <h3 id="headOfficePaymentTitle">本部支払設定</h3>
+                  </div>
+                  <span>エージェント1人あたりの本部支払額を履歴で管理します</span>
+                </div>
+                <div class="metric-grid head-office-payment-summary" id="headOfficePaymentSummary"></div>
+                <div class="head-office-payment-grid">
+                  <section aria-labelledby="headOfficeMonthlyTitle">
+                    <div class="fee-history-heading">
+                      <strong id="headOfficeMonthlyTitle">月額登録料履歴</strong>
+                      <span>在籍中のエージェント1人ごとに毎月控除</span>
+                    </div>
+                    <div class="head-office-history-list" id="headOfficeMonthlyRows"></div>
+                    <div class="fee-history-add-row">
+                      <input class="agent-table-input agent-table-input--date" id="headOfficeMonthlyStartInput" type="month" />
+                      <input class="agent-table-input" id="headOfficeMonthlyAmountInput" type="number" min="0" step="1000" value="5000" inputmode="numeric" />
+                      <small>円/月</small>
+                      <button class="file-button fee-history-add-button" id="headOfficeMonthlyAddButton" type="button">履歴を追加</button>
+                    </div>
+                  </section>
+                  <section aria-labelledby="headOfficeOneTimeTitle">
+                    <div class="fee-history-heading">
+                      <strong id="headOfficeOneTimeTitle">登録・更新時支払履歴</strong>
+                      <span>契約締結月と更新応当月に1人ごとに控除</span>
+                    </div>
+                    <div class="head-office-history-list" id="headOfficeOneTimeRows"></div>
+                    <div class="fee-history-add-row">
+                      <input class="agent-table-input agent-table-input--date" id="headOfficeOneTimeStartInput" type="month" />
+                      <input class="agent-table-input" id="headOfficeOneTimeAmountInput" type="number" min="0" step="1000" value="15000" inputmode="numeric" />
+                      <small>円/回</small>
+                      <button class="file-button fee-history-add-button" id="headOfficeOneTimeAddButton" type="button">履歴を追加</button>
+                    </div>
+                  </section>
+                </div>
+              </section>
+
+              <div class="metric-grid agent-income-summary" id="agentIncomeSummary"></div>
+
+              <section class="agent-annual-list" aria-labelledby="agentAnnualListTitle">
+                <div class="agent-monthly-heading">
+                  <h4 id="agentAnnualListTitle">年間フィー一覧</h4>
+                  <label>
+                    <span>表示年</span>
+                    <input id="agentAnnualYear" type="number" min="2020" max="2100" step="1" />
+                  </label>
+                </div>
+                <div class="table-wrap">
+                  <table class="actual-table agent-annual-table">
+                    <thead>
+                      <tr>
+                        <th>氏名</th>
+                        <th>区分</th>
+                        <th>1月</th>
+                        <th>2月</th>
+                        <th>3月</th>
+                        <th>4月</th>
+                        <th>5月</th>
+                        <th>6月</th>
+                        <th>7月</th>
+                        <th>8月</th>
+                        <th>9月</th>
+                        <th>10月</th>
+                        <th>11月</th>
+                        <th>12月</th>
+                        <th>年間合計</th>
+                      </tr>
+                    </thead>
+                    <tbody id="agentAnnualBillingRows"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="agent-register-list" aria-labelledby="agentRegisterTableTitle">
+                <h4 id="agentRegisterTableTitle">登録エージェント</h4>
+                <div class="table-wrap">
+                  <table class="actual-table agent-register-table">
+                    <thead>
+                      <tr>
+                        <th>エージェント名</th>
+                        <th>ランク</th>
+                        <th>宅建区分</th>
+                        <th>最新フィー</th>
+                        <th>登録料</th>
+                        <th>コミッション率</th>
+                        <th>更新料</th>
+                        <th>契約締結月</th>
+                        <th>解約月</th>
+                        <th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="registeredAgentRows"></tbody>
+                  </table>
+                </div>
+              </section>
+            </section>
+          </section>
+
+
+          <section class="assumption-panel" aria-labelledby="assumptionTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Assumptions</p>
+                <h2 id="assumptionTitle">事業前提</h2>
+              </div>
+            </div>
+
+            <div class="assumption-grid">
+              <label class="field field--number">
+                <span id="ownerSalaryLabel">オーナー給与</span>
+                <strong><output id="ownerSalaryOut">30</output> 万円/月</strong>
+                <input id="ownerSalary" type="number" min="0" max="500" step="1" value="30" inputmode="numeric" />
+              </label>
+              <label class="field field--number">
+                <span>家賃</span>
+                <strong><output id="rentOut">20</output> 万円/月</strong>
+                <input id="rent" type="number" min="0" max="500" step="1" value="20" inputmode="numeric" />
+              </label>
+              <label class="field field--number">
+                <span id="officeFeeLabel">オフィスフィー</span>
+                <strong><output id="officeFeeOut">10</output> 万円/月</strong>
+                <input id="officeFee" type="number" min="0" max="500" step="1" value="10" inputmode="numeric" />
+              </label>
+              <label class="field field--number">
+                <span id="adCoopFeeLabel">広告協力金</span>
+                <strong><output id="adCoopFeeOut">3</output> 万円/月</strong>
+                <input id="adCoopFee" type="number" min="0" max="500" step="1" value="3" inputmode="numeric" />
+              </label>
+              <label class="field field--number">
+                <span id="officeStaffLabel">スタッフ給与</span>
+                <strong><output id="officeStaffOut">0</output> 万円/月</strong>
+                <input id="officeStaff" type="number" min="0" max="500" step="1" value="0" inputmode="numeric" />
+              </label>
+              <label class="field field--number">
+                <span id="otherExpenseLabel">その他経費</span>
+                <strong><output id="otherExpenseOut">10</output> 万円/月</strong>
+                <input id="otherExpense" type="number" min="0" max="1000" step="1" value="10" inputmode="numeric" />
+              </label>
+              <label class="field field--number current-assumption-field" hidden>
+                <span>その他経費</span>
+                <strong><output id="generalExpenseOut">0</output> 万円/月</strong>
+                <input id="generalExpense" type="number" min="0" max="1000" step="1" value="0" inputmode="numeric" />
+              </label>
+              <label class="field field--number current-assumption-field" hidden>
+                <span>営業固定給＋法定福利費</span>
+                <strong><output id="salesEmployeeSalaryOut">0</output> 万円/月</strong>
+                <input id="salesEmployeeSalary" type="number" min="0" max="1000" step="1" value="0" inputmode="numeric" readonly />
+              </label>
+              <label class="field field--number current-assumption-field" hidden>
+                <span>売上に対するロイヤリティ</span>
+                <strong><output id="salesRoyaltyRateOut">0</output> %</strong>
+                <input id="salesRoyaltyRate" type="number" min="0" max="100" step="0.1" value="0" inputmode="decimal" />
+              </label>
+            </div>
+
+            <div class="assumption-summary">
+              <article>
+                <span>合計月額</span>
+                <strong id="monthlyFixedTotal">73万円</strong>
+              </article>
+              <article>
+                <span>年間固定費</span>
+                <strong id="annualFixedTotal">876万円</strong>
+              </article>
+            </div>
+          </section>
+
+          <section class="rank-panel" aria-labelledby="rankTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Agent Rank</p>
+                <h2 id="rankTitle">ランク別フィー・コミッション設定</h2>
+              </div>
+              <strong class="rank-source" id="rankSource">KYOUEI札幌AGTフィー報酬割合</strong>
+            </div>
+
+            <div class="rank-reference" id="rankReference" hidden>
+              <article>
+                <strong>A 安定重視型</strong>
+                <span>固定給 25万〜35万円</span>
+                <span>歩合率 1%〜5%</span>
+                <small>大手デベロッパーやハウスメーカーに多い。</small>
+              </article>
+              <article>
+                <strong>B バランス型</strong>
+                <span>固定給 20万〜25万円</span>
+                <span>歩合率 5%〜15%</span>
+                <small>中堅〜大手の売買仲介会社で最も一般的。</small>
+              </article>
+              <article>
+                <strong>C 成果追求型</strong>
+                <span>固定給 15万〜20万円</span>
+                <span>歩合率 20%〜30%</span>
+                <small>投資用不動産や中小の売買仲介に多い。</small>
+              </article>
+            </div>
+
+            <div class="table-wrap">
+              <table class="rank-table">
+                <thead>
+                  <tr>
+                    <th>ランク</th>
+                    <th>月額Agフィー</th>
+                    <th>宅建士 通常</th>
+                    <th>非保持者 通常</th>
+                    <th>達成基準</th>
+                    <th>宅建士 達成後</th>
+                  </tr>
+                </thead>
+                <tbody id="rankRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+
+          <section class="owner-panel" aria-labelledby="ownerDealTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Owner Deal</p>
+                <h2 id="ownerDealTitle">オーナーの年間取引額</h2>
+              </div>
+            </div>
+
+            <div class="owner-deal-grid owner-deal-grid--compact">
+              <label class="field field--number owner-deal-field">
+                <span id="ownerTransactionLabel">オーナー年間取引額</span>
+                <strong><output id="ownerTransactionOut">500</output> 万円</strong>
+                <input id="ownerTransaction" type="number" min="0" max="10000" step="50" value="500" inputmode="numeric" />
+              </label>
+              <article>
+                <span id="ownerRevenueLabel">オーナー粗利貢献</span>
+                <strong id="ownerRevenueValue">470万円</strong>
+                <small id="ownerRevenueNote">6%ブローカーフィー控除後</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="reverse-panel" aria-labelledby="reverseTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Reverse Plan</p>
+                <h2 id="reverseTitle">目標達成までの必要粗利・取引額</h2>
+              </div>
+              <strong class="phase-badge" id="phaseBadge">利益300万円</strong>
+            </div>
+
+            <div class="reverse-grid reverse-grid--flow" id="reverseGrid">
+              <article class="reverse-card reverse-card--focus">
+                <span>必要年間オフィス粗利</span>
+                <strong id="requiredRevenue">0万円</strong>
+                <small>年間固定費 + 目標利益</small>
+              </article>
+              <article class="reverse-card">
+                <span>オーナー粗利</span>
+                <strong id="reverseOwnerRevenue">0万円</strong>
+                <small>オーナー取引額 × 94%</small>
+              </article>
+              <article class="reverse-card">
+                <span>Agフィー年間利益</span>
+                <strong id="reverseDeskRevenueCard">0万円</strong>
+                <small>本部支払0.8万円/月を控除後</small>
+              </article>
+              <article class="reverse-card">
+                <span>Ag取引で埋める不足粗利</span>
+                <strong id="requiredOfficeCommission">0万円</strong>
+                <small>必要粗利 - オーナー粗利 - Agフィー</small>
+              </article>
+              <article class="reverse-card">
+                <span>Ag側の必要取引額</span>
+                <strong id="requiredAgentCommissionSales">0万円</strong>
+                <small>不足粗利 ÷ 平均オフィス取り分</small>
+              </article>
+              <article class="reverse-card">
+                <span>必要な総取引額</span>
+                <strong id="requiredCommissionSales">0万円</strong>
+                <small>オーナー取引額 + Ag側の必要取引額</small>
+              </article>
+              <article class="reverse-card">
+                <span>Ag1人あたり必要取引額</span>
+                <strong id="requiredPerAgent">0万円</strong>
+                <small>採用人数別の目安</small>
+              </article>
+            </div>
+
+          </section>
+
+          <section class="rank-plan-panel" aria-labelledby="rankPlanTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow" id="rankPlanEyebrow">Recruiting Mix</p>
+                <h2 id="rankPlanTitle">ランク別採用計画</h2>
+              </div>
+              <strong class="rank-source" id="rankPlanTotal">合計 0名</strong>
+            </div>
+
+            <div class="rank-plan-summary" id="rankPlanSummary"></div>
+
+            <div class="table-wrap">
+              <table class="rank-plan-table">
+                <thead>
+                  <tr>
+                    <th>ランク</th>
+                    <th>採用人数</th>
+                    <th>1人あたり年間取引金額</th>
+                    <th>月額Agフィー</th>
+                    <th>歩合率</th>
+                    <th><span>1人あたりAg収入</span><small>支払Agフィー控除後</small></th>
+                    <th>取引由来オフィス粗利</th>
+                  </tr>
+                </thead>
+                <tbody id="rankPlanRows"></tbody>
+                <tfoot>
+                  <tr class="rank-plan-total-row">
+                    <td colspan="6">合計</td>
+                    <td id="rankPlanProfitTotal">0万円</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+
+          <div class="kpi-grid">
+            <article class="kpi kpi--primary">
+              <span id="annualRevenueLabel">現在プランの年間オフィス粗利</span>
+              <strong id="annualRevenue">0万円</strong>
+              <small id="annualRevenueNote">仲介手数料粗利 + オーナー粗利 + Agフィー年間利益</small>
+            </article>
+            <article class="kpi">
+              <span id="annualProfitLabel">現在プランの年間営業利益</span>
+              <strong id="annualProfit">0万円</strong>
+              <small id="profitNote">年間オフィス粗利 - 年間固定費</small>
+            </article>
+            <article class="kpi">
+              <span>目標利益との差額</span>
+              <strong id="targetGap">0万円</strong>
+              <small>現在プランの営業利益 - 目標利益</small>
+            </article>
+          </div>
+
+          <div class="insight-band">
+            <div>
+              <p class="eyebrow">Talking Point</p>
+              <h2 id="headline">オフィス経営の魅力</h2>
+            </div>
+            <p id="insight">
+              条件を調整すると、収益の伸び方と営業利益の見通しがここに表示されます。
+            </p>
+          </div>
+
+
+          <section class="table-panel" aria-labelledby="tableTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Projection</p>
+                <h2 id="tableTitle">年次シミュレーション</h2>
+              </div>
+            </div>
+
+            <div class="projection-setting">
+              <label class="field field--number">
+                <span>1件あたり平均仲介手数料</span>
+                <strong><output id="feeOut">80</output> 万円</strong>
+                <input id="fee" type="number" min="0" max="1000" step="10" value="80" inputmode="numeric" />
+              </label>
+              <p>年間成約件数の換算にだけ使用します。年次表は、エージェント数が毎年3名純増、1人あたり年間取引金額が毎年7%増、固定費が毎年5.5%増える前提です。</p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>年</th>
+                    <th>エージェント数</th>
+                    <th>年間成約</th>
+                    <th>年間オフィス粗利</th>
+                    <th>営業利益</th>
+                    <th>累計利益</th>
+                  </tr>
+                </thead>
+                <tbody id="projectionRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
