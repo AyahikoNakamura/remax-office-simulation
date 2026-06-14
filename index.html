@@ -515,55 +515,6 @@
             </div>
           </section>
 
-          <section class="reverse-panel" aria-labelledby="reverseTitle">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">Reverse Plan</p>
-                <h2 id="reverseTitle">目標達成までの必要粗利・取引額</h2>
-              </div>
-              <strong class="phase-badge" id="phaseBadge">利益300万円</strong>
-            </div>
-
-            <div class="reverse-grid reverse-grid--flow" id="reverseGrid">
-              <article class="reverse-card reverse-card--focus">
-                <span>必要年間オフィス粗利</span>
-                <strong id="requiredRevenue">0万円</strong>
-                <small>年間固定費 + 目標利益</small>
-              </article>
-              <article class="reverse-card">
-                <span>オーナー粗利</span>
-                <strong id="reverseOwnerRevenue">0万円</strong>
-                <small>オーナー取引額 × 94%</small>
-              </article>
-              <article class="reverse-card">
-                <span>Agフィー年間利益</span>
-                <strong id="reverseDeskRevenueCard">0万円</strong>
-                <small>本部支払0.8万円/月を控除後</small>
-              </article>
-              <article class="reverse-card">
-                <span>Ag取引で埋める不足粗利</span>
-                <strong id="requiredOfficeCommission">0万円</strong>
-                <small>必要粗利 - オーナー粗利 - Agフィー</small>
-              </article>
-              <article class="reverse-card">
-                <span>Ag側の必要取引額</span>
-                <strong id="requiredAgentCommissionSales">0万円</strong>
-                <small>不足粗利 ÷ 平均オフィス取り分</small>
-              </article>
-              <article class="reverse-card">
-                <span>必要な総取引額</span>
-                <strong id="requiredCommissionSales">0万円</strong>
-                <small>オーナー取引額 + Ag側の必要取引額</small>
-              </article>
-              <article class="reverse-card">
-                <span>Ag1人あたり必要取引額</span>
-                <strong id="requiredPerAgent">0万円</strong>
-                <small>採用人数別の目安</small>
-              </article>
-            </div>
-
-          </section>
-
           <section class="rank-plan-panel" aria-labelledby="rankPlanTitle">
             <div class="panel-heading">
               <div>
@@ -599,23 +550,65 @@
             </div>
           </section>
 
-          <div class="kpi-grid">
-            <article class="kpi kpi--primary">
-              <span id="annualRevenueLabel">現在プランの年間オフィス粗利</span>
-              <strong id="annualRevenue">0万円</strong>
-              <small id="annualRevenueNote">仲介手数料粗利 + オーナー粗利 + Agフィー年間利益</small>
-            </article>
-            <article class="kpi">
-              <span id="annualProfitLabel">現在プランの年間営業利益</span>
-              <strong id="annualProfit">0万円</strong>
-              <small id="profitNote">年間オフィス粗利 - 年間固定費</small>
-            </article>
-            <article class="kpi">
-              <span>目標利益との差額</span>
-              <strong id="targetGap">0万円</strong>
-              <small>現在プランの営業利益 - 目標利益</small>
-            </article>
-          </div>
+          <section class="result-panel" aria-labelledby="resultTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Result</p>
+                <h2 id="resultTitle">現在プランの結果</h2>
+              </div>
+              <strong class="phase-badge" id="phaseBadge">利益300万円</strong>
+            </div>
+
+            <div class="kpi-grid">
+              <article class="kpi kpi--primary">
+                <span id="annualRevenueLabel">現在プランの年間オフィス粗利</span>
+                <strong id="annualRevenue">0万円</strong>
+                <small id="annualRevenueNote">仲介手数料粗利 + オーナー粗利 + Agフィー年間利益</small>
+              </article>
+              <article class="kpi">
+                <span id="annualCostLabel">年間固定費</span>
+                <strong id="annualCost">0万円</strong>
+                <small id="annualCostNote">事業前提の月額合計 × 12か月</small>
+              </article>
+              <article class="kpi">
+                <span id="annualProfitLabel">現在プランの年間営業利益</span>
+                <strong id="annualProfit">0万円</strong>
+                <small id="profitNote">年間オフィス粗利 - 年間固定費</small>
+              </article>
+            </div>
+
+            <div class="result-breakdown-layout">
+              <section class="result-breakdown-group gross-source-group" aria-labelledby="grossSourceTitle">
+                <div class="result-breakdown-heading">
+                  <p class="eyebrow">Source</p>
+                  <h3 id="grossSourceTitle">年間オフィス粗利の内訳</h3>
+                </div>
+                <div class="reverse-grid reverse-grid--source" id="grossSourceGrid">
+                  <article class="reverse-card">
+                    <span>オーナー粗利</span>
+                    <strong id="sourceOwnerRevenue">0万円</strong>
+                    <small>オーナー取引額 × 94%</small>
+                  </article>
+                  <article class="reverse-card">
+                    <span>Ag取引粗利</span>
+                    <strong id="sourceAgentCommissionRevenue">0万円</strong>
+                    <small>採用・報酬設計から計算</small>
+                  </article>
+                  <article class="reverse-card">
+                    <span>Agフィー年間利益</span>
+                    <strong id="sourceDeskRevenue">0万円</strong>
+                    <small>本部支払0.8万円/月を控除後</small>
+                  </article>
+                </div>
+                <div class="source-equation">
+                  <span>内訳合計</span>
+                  <strong id="sourceTotalRevenue">0万円</strong>
+                  <small>上の年間オフィス粗利と一致</small>
+                </div>
+              </section>
+            </div>
+
+          </section>
 
           <div class="insight-band">
             <div>

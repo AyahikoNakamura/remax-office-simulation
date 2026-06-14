@@ -272,6 +272,16 @@ const formatAgentEffectiveCommission = (value) => {
   const rate = Number(value);
   return Number.isFinite(rate) ? formatPercent(roundToOne(rate * (100 - remaxRoyaltyRate) / 100)) : "-";
 };
+const agentRateFields = new Set(["licensedRate", "unlicensedRate", "bonusLicensedRate", "bonusUnlicensedRate"]);
+const effectiveAgentRate = (value) => {
+  const rate = Number(value);
+  return Number.isFinite(rate) ? roundToOne(rate * (100 - remaxRoyaltyRate) / 100) : value;
+};
+const baseAgentRateFromEffective = (value) => {
+  const rate = Number(value);
+  const netAfterRoyalty = 100 - remaxRoyaltyRate;
+  return Number.isFinite(rate) && netAfterRoyalty > 0 ? roundToOne(rate / netAfterRoyalty * 100) : rate;
+};
 const formatCompact = (value) => Number(value).toLocaleString("ja-JP", {
   minimumFractionDigits: Number.isInteger(Number(value)) ? 0 : 1,
   maximumFractionDigits: 1,
@@ -2767,15 +2777,16 @@ function loadAccountingPdfs(files) {
 }
 
 function setKpis(values, result) {
-  const targetGap = result.annualProfit - values.targetProfit;
   const isCurrent = activePreset === "current";
   document.getElementById("annualRevenueLabel").textContent = isCurrent ? "年間会社計上粗利" : "現在プランの年間オフィス粗利";
   document.getElementById("annualRevenueNote").textContent = isCurrent ? "売上高から歩合・ロイヤリティを控除後" : "仲介手数料粗利 + オーナー粗利 + Agフィー年間利益";
+  document.getElementById("annualCostLabel").textContent = isCurrent ? "年間販管費" : "年間固定費";
+  document.getElementById("annualCostNote").textContent = isCurrent ? "現在設定の販管費合計" : "事業前提の月額合計 × 12か月";
   document.getElementById("annualProfitLabel").textContent = isCurrent ? "年間営業利益" : "現在プランの年間営業利益";
   document.getElementById("annualRevenue").textContent = formatMan(result.annualRevenue);
+  document.getElementById("annualCost").textContent = formatMan(result.annualCost);
   document.getElementById("annualProfit").textContent = formatMan(result.annualProfit);
   document.getElementById("profitNote").textContent = isCurrent ? `会社計上粗利 ${formatMan(result.annualRevenue)} - 販管費 ${formatMan(result.annualCost)}` : `${formatMan(result.annualRevenue)} - ${formatMan(result.annualCost)}`;
-  document.getElementById("targetGap").textContent = formatSignedMan(targetGap);
 }
 
 function setInsight(values, result) {
@@ -2930,107 +2941,57 @@ function reverseCalc(values, result) {
 function setReverse(values, result) {
   const reverse = reverseCalc(values, result);
   const isCurrent = activePreset === "current";
+  const resultTitle = document.getElementById("resultTitle");
+  const grossSourceTitle = document.getElementById("grossSourceTitle");
+  const grossSourceGrid = document.getElementById("grossSourceGrid");
 
-  document.getElementById("reverseTitle").textContent = isCurrent ? "売上・粗利・販管費の関係" : "目標達成までの必要粗利・取引額";
-  document.getElementById("reverseGrid").innerHTML = isCurrent ? `
+  if (resultTitle) resultTitle.textContent = isCurrent ? "現在の損益結果" : "現在プランの結果";
+  if (grossSourceTitle) grossSourceTitle.textContent = isCurrent ? "年間会社計上粗利の内訳" : "年間オフィス粗利の内訳";
+  grossSourceGrid.innerHTML = isCurrent ? `
     <article class="reverse-card reverse-card--focus">
       <span>年間売上高</span>
-      <strong id="requiredRevenue">0万円</strong>
+      <strong id="sourceOwnerRevenue">0万円</strong>
       <small>営業社員売上 + オーナー取引額</small>
     </article>
     <article class="reverse-card">
       <span>会社計上粗利</span>
-      <strong id="reverseOwnerRevenue">0万円</strong>
+      <strong id="sourceAgentCommissionRevenue">0万円</strong>
       <small>売上高から歩合・ロイヤリティを控除</small>
     </article>
     <article class="reverse-card">
       <span>年間販管費</span>
-      <strong id="reverseDeskRevenueCard">0万円</strong>
+      <strong id="sourceDeskRevenue">0万円</strong>
       <small>固定費の年間合計</small>
     </article>
-    <article class="reverse-card">
-      <span>年間営業利益</span>
-      <strong id="requiredOfficeCommission">0万円</strong>
-      <small>会社計上粗利 - 年間販管費</small>
-    </article>
-    <article class="reverse-card">
-      <span>目標利益</span>
-      <strong id="requiredAgentCommissionSales">0万円</strong>
-      <small>最初に決める目標</small>
-    </article>
-    <article class="reverse-card">
-      <span>目標との差額</span>
-      <strong id="requiredCommissionSales">0万円</strong>
-      <small>営業利益 - 目標利益</small>
-    </article>
-    <article class="reverse-card">
-      <span>粗利率</span>
-      <strong id="requiredPerAgent">0%</strong>
-      <small>会社計上粗利 ÷ 売上高</small>
-    </article>
-    <article class="reverse-card">
-      <span>損益分岐売上高</span>
-      <strong id="expenseImpact">0万円</strong>
-      <small>販管費をまかなう売上目安</small>
-    </article>
   ` : `
-    <article class="reverse-card reverse-card--focus">
-      <span>必要年間オフィス粗利</span>
-      <strong id="requiredRevenue">0万円</strong>
-      <small>年間固定費 + 目標利益</small>
-    </article>
     <article class="reverse-card">
       <span>オーナー粗利</span>
-      <strong id="reverseOwnerRevenue">0万円</strong>
+      <strong id="sourceOwnerRevenue">0万円</strong>
       <small>オーナー取引額 × 94%</small>
     </article>
     <article class="reverse-card">
+      <span>Ag取引粗利</span>
+      <strong id="sourceAgentCommissionRevenue">0万円</strong>
+      <small>採用・報酬設計から計算</small>
+    </article>
+    <article class="reverse-card">
       <span>Agフィー年間利益</span>
-      <strong id="reverseDeskRevenueCard">0万円</strong>
+      <strong id="sourceDeskRevenue">0万円</strong>
       <small>本部支払0.8万円/月を控除後</small>
-    </article>
-    <article class="reverse-card">
-      <span>Ag取引で埋める不足粗利</span>
-      <strong id="requiredOfficeCommission">0万円</strong>
-      <small>必要粗利 - オーナー粗利 - Agフィー</small>
-    </article>
-    <article class="reverse-card">
-      <span>Ag側の必要取引額</span>
-      <strong id="requiredAgentCommissionSales">0万円</strong>
-      <small>不足粗利 ÷ 平均オフィス取り分</small>
-    </article>
-    <article class="reverse-card">
-      <span>必要な総取引額</span>
-      <strong id="requiredCommissionSales">0万円</strong>
-      <small>オーナー取引額 + Ag側の必要取引額</small>
-    </article>
-    <article class="reverse-card">
-      <span>Ag1人あたり必要取引額</span>
-      <strong id="requiredPerAgent">0万円</strong>
-      <small>採用人数別の目安</small>
     </article>
   `;
 
   document.getElementById("phaseBadge").textContent = reverse.label;
   if (isCurrent) {
-    const grossMarginRate = result.grossCommission > 0 ? result.annualRevenue / result.grossCommission : 0;
-    const breakEvenSales = grossMarginRate > 0 ? result.annualCost / grossMarginRate : 0;
-    document.getElementById("requiredRevenue").textContent = formatMan(result.grossCommission);
-    document.getElementById("reverseOwnerRevenue").textContent = formatMan(result.annualRevenue);
-    document.getElementById("reverseDeskRevenueCard").textContent = formatMan(result.annualCost);
-    document.getElementById("requiredOfficeCommission").textContent = formatMan(result.annualProfit);
-    document.getElementById("requiredAgentCommissionSales").textContent = formatMan(values.targetProfit);
-    document.getElementById("requiredCommissionSales").textContent = formatSignedMan(result.annualProfit - values.targetProfit);
-    document.getElementById("requiredPerAgent").textContent = formatPercent(roundToOne(grossMarginRate * 100));
-    document.getElementById("expenseImpact").textContent = formatMan(breakEvenSales);
+    document.getElementById("sourceOwnerRevenue").textContent = formatMan(result.grossCommission);
+    document.getElementById("sourceAgentCommissionRevenue").textContent = formatMan(result.annualRevenue);
+    document.getElementById("sourceDeskRevenue").textContent = formatMan(result.annualCost);
+    document.getElementById("sourceTotalRevenue").textContent = formatMan(result.annualRevenue);
   } else {
-    document.getElementById("requiredRevenue").textContent = formatMan(reverse.requiredRevenue);
-    document.getElementById("requiredCommissionSales").textContent = formatMan(reverse.requiredCommissionSales);
-    document.getElementById("requiredOfficeCommission").textContent = formatMan(reverse.requiredOfficeCommission);
-    document.getElementById("requiredAgentCommissionSales").textContent = formatMan(reverse.requiredAgentCommissionSales);
-    document.getElementById("requiredPerAgent").textContent = formatMan(reverse.requiredPerAgent);
-    document.getElementById("reverseOwnerRevenue").textContent = formatMan(reverse.ownerRevenue);
-    document.getElementById("reverseDeskRevenueCard").textContent = formatMan(reverse.deskRevenue);
+    document.getElementById("sourceOwnerRevenue").textContent = formatMan(reverse.ownerRevenue);
+    document.getElementById("sourceAgentCommissionRevenue").textContent = formatMan(result.agentCommissionRevenue);
+    document.getElementById("sourceDeskRevenue").textContent = formatMan(reverse.deskRevenue);
+    document.getElementById("sourceTotalRevenue").textContent = formatMan(result.annualRevenue);
   }
   document.getElementById("ownerRevenueValue").textContent = formatMan(reverse.ownerRevenue);
   document.getElementById("ownerRevenueNote").textContent = `${formatCompact(ownerRoyaltyRate(values))}%ロイヤリティ控除後`;
@@ -3038,9 +2999,10 @@ function setReverse(values, result) {
 }
 
 function rankInput(value, field, index, suffix = "") {
-  const displayValue = value === null ? "" : value;
-  const isYen = suffix.includes("円");
-  return `<input class="rank-input" data-rank-index="${index}" data-field="${field}" ${isYen ? 'data-yen-input="true" type="text" inputmode="numeric"' : 'type="number" min="0"'} step="1" value="${isYen ? formatInputYen(displayValue) : displayValue}" aria-label="${agentRanks[index].rank} ${field}" />${suffix}`;
+  const isEffectiveAgentRate = agentRateFields.has(field);
+  const displayValue = value === null ? "" : isEffectiveAgentRate ? effectiveAgentRate(value) : value;
+  const isYen = suffix.includes("円") || field.toLowerCase().includes("yen");
+  return `<input class="rank-input" data-rank-index="${index}" data-field="${field}" ${isEffectiveAgentRate ? 'data-effective-rate="true"' : ""} ${isYen ? 'data-yen-input="true" type="text" inputmode="numeric"' : 'type="number" min="0"'} step="${isEffectiveAgentRate ? "0.1" : "1"}" value="${isYen ? formatInputYen(displayValue) : displayValue}" aria-label="${agentRanks[index].rank} ${field}" />${suffix}`;
 }
 
 function currentRankInput(value, field, index, suffix = "", step = "1") {
@@ -3062,6 +3024,8 @@ function currentCompanyProfitForRank(rank, count, annualTransactionMan) {
 
 function renderRankRows() {
   const isCurrent = activePreset === "current";
+  const rankPanel = document.querySelector(".rank-panel");
+  if (rankPanel) rankPanel.hidden = !isCurrent;
   document.getElementById("rankTitle").textContent = isCurrent ? "タイプ別歩合率" : "ランク別フィー・コミッション設定";
   document.getElementById("rankSource").hidden = isCurrent;
   document.getElementById("rankReference").hidden = !isCurrent;
@@ -3140,7 +3104,8 @@ function updateRankData(target) {
   if (field === "rank") {
     rank.rank = target.value.trim() || rank.rank;
   } else {
-    rank[field] = target.value === "" ? null : parseFormattedNumber(target.value);
+    const nextValue = parseFormattedNumber(target.value);
+    rank[field] = target.value === "" ? null : target.dataset.effectiveRate ? baseAgentRateFromEffective(nextValue) : nextValue;
   }
 
   renderRankPlanRows();
@@ -3150,7 +3115,7 @@ function updateRankData(target) {
 function renderRankPlanRows() {
   const isCurrent = activePreset === "current";
   document.getElementById("rankPlanEyebrow").textContent = isCurrent ? "Sales Mix" : "Recruiting Mix";
-  document.getElementById("rankPlanTitle").textContent = isCurrent ? "タイプ別売上計画" : "ランク別採用計画";
+  document.getElementById("rankPlanTitle").textContent = isCurrent ? "タイプ別売上計画" : "採用・報酬設計";
   const tableHead = document.querySelector(".rank-plan-table thead");
   tableHead.innerHTML = isCurrent ? `
     <tr>
@@ -3165,16 +3130,18 @@ function renderRankPlanRows() {
     <tr>
       <th>ランク</th>
       <th>採用人数</th>
-      <th>1人あたり年間取引金額</th>
-      <th>月額Agフィー</th>
-      <th>歩合率</th>
-      <th><span>1人あたりAg収入</span><small>支払Agフィー控除後</small></th>
-      <th>取引由来オフィス粗利</th>
+      <th>年取引/人</th>
+      <th>月額フィー</th>
+      <th>Ag実効歩合</th>
+      <th>達成基準</th>
+      <th>達成後実効</th>
+      <th><span>Ag収入/人</span><small>フィー控除後</small></th>
+      <th>取引粗利</th>
     </tr>
   `;
 
   const totalLabelCell = document.querySelector(".rank-plan-total-row td:first-child");
-  if (totalLabelCell) totalLabelCell.colSpan = isCurrent ? 5 : 6;
+  if (totalLabelCell) totalLabelCell.colSpan = isCurrent ? 5 : 8;
 
   document.getElementById("rankPlanRows").innerHTML = agentRanks
     .map((rank, index) => {
@@ -3195,11 +3162,16 @@ function renderRankPlanRows() {
         </tr>
       ` : `
         <tr>
-          <td><strong>${rank.rank}ランク</strong></td>
-          <td><input class="rank-plan-input" data-plan-index="${index}" data-field="count" type="number" min="0" step="1" value="${plan.count}" aria-label="${rank.rank}ランク 採用人数" /><span>名</span></td>
-          <td><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${rank.rank}ランク 年間取引金額" /><span>万円</span></td>
-          <td>${formatCompact(monthlyFeeMan(rank))}万円</td>
-          <td>${formatPercent(rank.licensedRate)}</td>
+          <td>
+            <input class="rank-name-input" data-rank-index="${index}" data-field="rank" type="text" value="${rank.rank}" aria-label="ランク名" />
+            <small>${rank.note}</small>
+          </td>
+          <td><span class="unit-input"><input class="rank-plan-input" data-plan-index="${index}" data-field="count" type="number" min="0" step="1" value="${plan.count}" aria-label="${rank.rank}ランク 採用人数" /><span>名</span></span></td>
+          <td><span class="unit-input"><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${rank.rank}ランク 年間取引金額" /><span>万円</span></span></td>
+          <td><span class="unit-input">${rankInput(rank.monthlyFeeYen, "monthlyFeeYen", index, "")}<span>円</span></span></td>
+          <td><span class="unit-input">${rankInput(rank.licensedRate, "licensedRate", index)}<span>%</span></span></td>
+          <td><span class="unit-input">${rankInput(rank.thresholdMan, "thresholdMan", index)}<span>万円</span></span></td>
+          <td><span class="unit-input">${rankInput(rank.bonusLicensedRate, "bonusLicensedRate", index)}<span>%</span></span></td>
           <td id="rankPlanAgentIncome-${index}">${formatMan(agentIncome)}</td>
           <td id="rankPlanOffice-${index}">${formatMan(officeRevenue)}</td>
         </tr>
@@ -3420,7 +3392,19 @@ document.getElementById("resetButton").addEventListener("click", resetAll);
 const rankRowsElement = document.getElementById("rankRows");
 rankRowsElement.addEventListener("change", (event) => updateRankData(event.target));
 rankRowsElement.addEventListener("focusout", (event) => updateRankData(event.target));
-document.getElementById("rankPlanRows").addEventListener("input", (event) => updateRankPlanData(event.target));
+document.getElementById("rankPlanRows").addEventListener("input", (event) => {
+  if (event.target.dataset.rankIndex || event.target.dataset.currentRankIndex) {
+    updateRankData(event.target);
+    return;
+  }
+  updateRankPlanData(event.target);
+});
+document.getElementById("rankPlanRows").addEventListener("change", (event) => {
+  if (event.target.dataset.rankIndex || event.target.dataset.currentRankIndex) updateRankData(event.target);
+});
+document.getElementById("rankPlanRows").addEventListener("focusout", (event) => {
+  if (event.target.dataset.rankIndex || event.target.dataset.currentRankIndex) updateRankData(event.target);
+});
 document.getElementById("actualCsvInput").addEventListener("change", (event) => loadActualCsv(event.target.files[0]));
 document.getElementById("actualCsvClearButton").addEventListener("click", clearActualSalesRows);
 document.getElementById("actualPeriods").addEventListener("click", (event) => updateActualPeriod(event.target));
