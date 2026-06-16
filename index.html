@@ -103,7 +103,6 @@
                 <p class="eyebrow">Goal</p>
                 <h2 id="goalTitle">最初に決める目標</h2>
               </div>
-              <button class="reset-button" id="resetButton" type="button">初期値に戻す</button>
             </div>
 
             <div class="preset-row preset-row--phase" role="group" aria-label="利益フェーズ">
@@ -524,8 +523,6 @@
               <strong class="rank-source" id="rankPlanTotal">合計 0名</strong>
             </div>
 
-            <div class="rank-plan-summary" id="rankPlanSummary"></div>
-
             <div class="table-wrap">
               <table class="rank-plan-table">
                 <thead>
@@ -545,6 +542,11 @@
                     <td colspan="6">合計</td>
                     <td id="rankPlanProfitTotal">0万円</td>
                   </tr>
+                  <tr class="rank-plan-summary-row">
+                    <td id="rankPlanSummaryCell" colspan="7">
+                      <div class="rank-plan-summary" id="rankPlanSummary"></div>
+                    </td>
+                  </tr>
                 </tfoot>
               </table>
             </div>
@@ -556,25 +558,10 @@
                 <p class="eyebrow">Result</p>
                 <h2 id="resultTitle">現在プランの結果</h2>
               </div>
-              <strong class="phase-badge" id="phaseBadge">利益300万円</strong>
-            </div>
-
-            <div class="kpi-grid">
-              <article class="kpi kpi--primary">
-                <span id="annualRevenueLabel">現在プランの年間オフィス粗利</span>
-                <strong id="annualRevenue">0万円</strong>
-                <small id="annualRevenueNote">仲介手数料粗利 + オーナー粗利 + Agフィー年間利益</small>
-              </article>
-              <article class="kpi">
-                <span id="annualCostLabel">年間固定費</span>
-                <strong id="annualCost">0万円</strong>
-                <small id="annualCostNote">事業前提の月額合計 × 12か月</small>
-              </article>
-              <article class="kpi">
-                <span id="annualProfitLabel">現在プランの年間営業利益</span>
-                <strong id="annualProfit">0万円</strong>
-                <small id="profitNote">年間オフィス粗利 - 年間固定費</small>
-              </article>
+              <div class="result-actions">
+                <button class="phase-badge" id="phaseBadge" type="button">利益300万円</button>
+                <button class="reset-button result-reset-button" id="resetButton" type="button">リセット</button>
+              </div>
             </div>
 
             <div class="result-breakdown-layout">
@@ -583,29 +570,51 @@
                   <p class="eyebrow">Source</p>
                   <h3 id="grossSourceTitle">年間オフィス粗利の内訳</h3>
                 </div>
-                <div class="reverse-grid reverse-grid--source" id="grossSourceGrid">
+                <div class="reverse-grid reverse-grid--source reverse-grid--formula" id="grossSourceGrid">
                   <article class="reverse-card">
                     <span>オーナー粗利</span>
                     <strong id="sourceOwnerRevenue">0万円</strong>
                     <small>オーナー取引額 × 94%</small>
                   </article>
-                  <article class="reverse-card">
-                    <span>Ag取引粗利</span>
-                    <strong id="sourceAgentCommissionRevenue">0万円</strong>
-                    <small>採用・報酬設計から計算</small>
-                  </article>
+                  <span class="formula-operator" aria-hidden="true">+</span>
                   <article class="reverse-card">
                     <span>Agフィー年間利益</span>
                     <strong id="sourceDeskRevenue">0万円</strong>
                     <small>本部支払0.8万円/月を控除後</small>
                   </article>
-                </div>
-                <div class="source-equation">
-                  <span>内訳合計</span>
-                  <strong id="sourceTotalRevenue">0万円</strong>
-                  <small>上の年間オフィス粗利と一致</small>
+                  <span class="formula-operator" aria-hidden="true">+</span>
+                  <article class="reverse-card">
+                    <span>Ag取引粗利</span>
+                    <strong id="sourceAgentCommissionRevenue">0万円</strong>
+                    <small>採用・報酬設計から計算</small>
+                  </article>
                 </div>
               </section>
+            </div>
+
+            <div class="source-sum-flow" aria-hidden="true">
+              <span>上の3項目を合計</span>
+              <b>↓</b>
+            </div>
+
+            <div class="kpi-grid kpi-grid--formula">
+              <article class="kpi kpi--primary">
+                <span id="annualRevenueLabel">現在プランの年間オフィス粗利</span>
+                <strong id="annualRevenue">0万円</strong>
+                <small id="annualRevenueNote">オーナー粗利 + Agフィー年間利益 + Ag取引粗利</small>
+              </article>
+              <span class="formula-operator formula-operator--minus" aria-hidden="true">−</span>
+              <article class="kpi">
+                <span id="annualCostLabel">年間固定費</span>
+                <strong id="annualCost">0万円</strong>
+                <small id="annualCostNote">事業前提の月額合計 × 12か月</small>
+              </article>
+              <span class="formula-operator formula-operator--equals" aria-hidden="true">=</span>
+              <article class="kpi kpi--profit">
+                <span id="annualProfitLabel">現在プランの年間営業利益</span>
+                <strong id="annualProfit">0万円</strong>
+                <small id="profitNote">年間オフィス粗利 - 年間固定費</small>
+              </article>
             </div>
 
           </section>
