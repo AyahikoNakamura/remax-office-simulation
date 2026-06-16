@@ -20,83 +20,16 @@
       </section>
 
       <section class="workspace">
-        <nav class="view-tabs" aria-label="表示切替">
-          <button class="view-tab is-active" data-view-tab="simulation" type="button">シミュレーション</button>
-          <button class="view-tab" data-view-tab="presentation" type="button">プレゼン</button>
-          <button class="view-tab" data-view-tab="actual" type="button">実績分析</button>
-          <button class="view-tab" data-view-tab="agents" type="button">登録エージェント</button>
-        </nav>
+        <div class="workspace-topbar">
+          <nav class="view-tabs" aria-label="表示切替">
+            <button class="view-tab is-active" data-view-tab="simulation" type="button">シミュレーション</button>
+            <button class="view-tab" data-view-tab="actual" type="button">実績分析</button>
+            <button class="view-tab" data-view-tab="agents" type="button">登録エージェント</button>
+          </nav>
+          <button class="seminar-toggle" id="seminarToggle" type="button" aria-pressed="false">セミナー表示</button>
+        </div>
 
         <section class="results" aria-label="シミュレーション結果">
-          <section class="presentation-panel" aria-labelledby="presentationTitle">
-            <div class="presentation-stage">
-              <div class="presentation-stage__top">
-                <div>
-                  <p class="eyebrow">Seminar Mode</p>
-                  <h2 id="presentationTitle">RE/MAXオフィス経営の魅力を数字で見せる</h2>
-                </div>
-                <div class="presentation-controls" aria-label="プレゼンフェーズ切替">
-                  <button class="presentation-step" id="presentationPrev" type="button" aria-label="前のフェーズ">←</button>
-                  <button class="presentation-step" id="presentationNext" type="button" aria-label="次のフェーズ">→</button>
-                </div>
-              </div>
-
-              <div class="presentation-phase-row" id="presentationPhaseRow" role="group" aria-label="利益フェーズ"></div>
-
-              <div class="presentation-hero-grid">
-                <article class="presentation-main-metric">
-                  <span id="presentationPhaseLabel">利益300万円</span>
-                  <strong id="presentationProfit">0万円</strong>
-                  <small id="presentationProfitNote">年間営業利益</small>
-                </article>
-                <article>
-                  <span>採用人数</span>
-                  <strong id="presentationAgents">0名</strong>
-                  <small>ランク別採用計画の合計</small>
-                </article>
-                <article>
-                  <span>Ag1人あたり必要取引額</span>
-                  <strong id="presentationPerAgent">0万円</strong>
-                  <small>目標利益から逆算</small>
-                </article>
-                <article>
-                  <span>5年累計利益</span>
-                  <strong id="presentationCumulative">0万円</strong>
-                  <small>採用純増・生産性成長を反映</small>
-                </article>
-              </div>
-
-              <div class="presentation-story">
-                <article>
-                  <span>この場面で伝えること</span>
-                  <p id="presentationTalk">目標利益、採用人数、必要取引額の関係を見せます。</p>
-                </article>
-                <article>
-                  <span>採用ミックス</span>
-                  <div class="presentation-mix" id="presentationMix"></div>
-                </article>
-              </div>
-
-              <div class="presentation-bottom-grid">
-                <article>
-                  <span>必要年間オフィス粗利</span>
-                  <strong id="presentationRequiredRevenue">0万円</strong>
-                  <small>年間固定費 + 目標利益</small>
-                </article>
-                <article>
-                  <span>現在プランの年間オフィス粗利</span>
-                  <strong id="presentationAnnualRevenue">0万円</strong>
-                  <small>取引粗利 + オーナー粗利 + Agフィー</small>
-                </article>
-                <article>
-                  <span>目標利益との差額</span>
-                  <strong id="presentationGap">0万円</strong>
-                  <small>現在プランの営業利益 - 目標利益</small>
-                </article>
-              </div>
-            </div>
-          </section>
-
           <section class="goal-panel" aria-labelledby="goalTitle">
             <div class="panel-heading">
               <div>
@@ -115,12 +48,63 @@
 
             <div class="goal-grid">
               <label class="field field--number field--target">
-                <span>年間目標利益</span>
+                <span id="targetProfitLabel">年間目標利益</span>
                 <strong><output id="targetProfitOut">300</output> 万円</strong>
                 <input id="targetProfit" type="number" min="0" max="5000" step="100" value="300" inputmode="numeric" />
               </label>
             </div>
 
+          </section>
+
+          <section class="seminar-summary-panel" aria-labelledby="seminarSummaryTitle">
+            <div class="seminar-summary-heading">
+              <div>
+                <p class="eyebrow">Simulation Summary</p>
+                <h2 id="seminarSummaryTitle">オフィス経営の収益構造</h2>
+              </div>
+              <strong id="seminarPhaseLabel">利益300万円</strong>
+            </div>
+
+            <div class="seminar-flow" aria-label="説明の流れ">
+              <span>1. 既存会社の収支</span>
+              <span>2. RE/MAXモデル</span>
+              <span>3. 採用計画</span>
+              <span>4. 必要取引額</span>
+            </div>
+
+            <div class="seminar-metric-grid">
+              <article class="seminar-metric seminar-metric--primary">
+                <span id="seminarPrimaryLabel">年間営業利益</span>
+                <strong id="seminarAnnualProfit">0万円</strong>
+                <small id="seminarProfitGap">目標との差額 0万円</small>
+              </article>
+              <article>
+                <span id="seminarSecondLabel">採用人数</span>
+                <strong id="seminarAgents">0名</strong>
+                <small id="seminarSecondNote">ランク別採用計画の合計</small>
+              </article>
+              <article>
+                <span id="seminarThirdLabel">Ag1人あたり必要取引額</span>
+                <strong id="seminarRequiredPerAgent">0万円</strong>
+                <small id="seminarThirdNote">目標利益から逆算</small>
+              </article>
+              <article>
+                <span id="seminarFourthLabel">5年累計利益</span>
+                <strong id="seminarCumulativeProfit">0万円</strong>
+                <small id="seminarFourthNote">年次シミュレーション</small>
+              </article>
+            </div>
+
+            <div class="seminar-talk-grid">
+              <article>
+                <span>確認ポイント</span>
+                <p id="seminarTalkPoint">目標利益、採用人数、必要取引額の関係を確認します。</p>
+              </article>
+              <article>
+                <span>収益の内訳</span>
+                <p id="seminarRevenueMix">オーナー粗利、Agフィー、Ag取引粗利を合計します。</p>
+              </article>
+            </div>
           </section>
 
           <section class="actual-panel" aria-labelledby="actualTitle">
