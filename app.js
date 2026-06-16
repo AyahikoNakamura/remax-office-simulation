@@ -64,10 +64,11 @@ const defaultAgentRanks = [
   { rank: "D", note: "契約初年度のみ", monthlyFeeYen: 14000, licensedRate: 50, unlicensedRate: 40, thresholdMan: 300, bonusLicensedRate: 60, bonusUnlicensedRate: null },
 ];
 const currentRankCompensationDefaults = [
-  { rank: "A", fixedSalaryYen: 250000, commissionRate: 5, welfareRate: 16 },
-  { rank: "B", fixedSalaryYen: 200000, commissionRate: 15, welfareRate: 16 },
-  { rank: "C", fixedSalaryYen: 150000, commissionRate: 30, welfareRate: 16 },
-  { rank: "D", fixedSalaryYen: 100000, commissionRate: 40, welfareRate: 16 },
+  { rank: "A", payType: "固定給＋低歩合", fixedSalaryYen: 250000, commissionRate: 5, bonusMonths: 0, welfareRate: 16 },
+  { rank: "B", payType: "固定給＋標準歩合", fixedSalaryYen: 200000, commissionRate: 15, bonusMonths: 0, welfareRate: 16 },
+  { rank: "C", payType: "固定給＋高歩合", fixedSalaryYen: 150000, commissionRate: 30, bonusMonths: 0, welfareRate: 16 },
+  { rank: "D", payType: "固定給＋高歩合", fixedSalaryYen: 100000, commissionRate: 40, bonusMonths: 0, welfareRate: 16 },
+  { rank: "E", payType: "固定給＋賞与", fixedSalaryYen: 350000, commissionRate: 0, bonusMonths: 3, welfareRate: 16 },
 ];
 const agentRankCommissionRates = { A: 80, B: 70, C: 60, D: 50 };
 const agentRankOptions = Object.keys(agentRankCommissionRates);
@@ -75,7 +76,8 @@ const agentLicenseOptions = ["宅建士（専任）", "宅建士", "無"];
 const phaseRankPlans = {
   current: [
     { count: 0, annualTransactionMan: 0 },
-    { count: 2, annualTransactionMan: 0 },
+    { count: 0, annualTransactionMan: 0 },
+    { count: 0, annualTransactionMan: 0 },
     { count: 0, annualTransactionMan: 0 },
     { count: 0, annualTransactionMan: 0 },
   ],
@@ -112,6 +114,13 @@ const phaseQuickRankPlans = {
     { count: 0, annualTransactionMan: 0 },
   ],
 };
+const currentSalesPlanPresets = [
+  { label: "A", index: 0, count: 4, annualTransactionMan: 1800 },
+  { label: "B", index: 1, count: 4, annualTransactionMan: 1800 },
+  { label: "C", index: 2, count: 4, annualTransactionMan: 1800 },
+  { label: "D", index: 3, count: 4, annualTransactionMan: 1800 },
+  { label: "E", index: 4, count: 4, annualTransactionMan: 1800 },
+];
 const defaultRankPlan = phaseRankPlans.phase300;
 const agentRanks = defaultAgentRanks.map((rank) => ({ ...rank }));
 const currentRankCompensations = currentRankCompensationDefaults.map((rank) => ({ ...rank }));
@@ -309,8 +318,9 @@ function currentSalesFixedCostMan() {
   const total = currentRankCompensations.reduce((sum, rank, index) => {
     const plan = rankPlan[index] || { count: 0 };
     const fixedSalary = Math.max(0, Number(rank.fixedSalaryYen) || 0);
+    const bonusMonthly = fixedSalary * Math.max(0, Number(rank.bonusMonths) || 0) / 12;
     const welfareRate = Math.max(0, Number(rank.welfareRate) || 0) / 100;
-    return sum + fixedSalary * (1 + welfareRate) * (Math.max(0, Number(plan.count) || 0)) / 10000;
+    return sum + (fixedSalary + bonusMonthly) * (1 + welfareRate) * (Math.max(0, Number(plan.count) || 0)) / 10000;
   }, 0);
   return roundToOne(total);
 }
@@ -390,7 +400,8 @@ function distributeAdditionalCounts(additionalCount) {
 function calcRankPlan(values) {
   const additionalCounts = distributeAdditionalCounts(Math.round(values.rankCountAdd || 0));
   const transactionMultiplier = values.rankTransactionMultiplier || 1;
-  const rows = agentRanks.map((rank, index) => {
+  const rowRanks = activePreset === "current" ? currentRankCompensations : agentRanks;
+  const rows = rowRanks.map((rank, index) => {
     const plan = rankPlan[index] || { count: 0, annualTransactionMan: 0 };
     const currentRank = currentRankCompensations[index] || {};
     const count = plan.count + (additionalCounts[index] || 0);
@@ -2958,10 +2969,10 @@ function setReverse(values, result) {
   grossSourceGrid.classList.toggle("reverse-grid--formula", !isCurrent);
   grossSourceGrid.classList.toggle("reverse-grid--current-source", isCurrent);
   grossSourceGrid.innerHTML = isCurrent ? `
-    <article class="reverse-card reverse-card--focus">
-      <span>年間売上高</span>
+    <article class="reverse-card">
+      <span>社長粗利</span>
       <strong id="sourceOwnerRevenue">0万円</strong>
-      <small>営業社員売上 + オーナー取引額</small>
+      <small>社長取引額からロイヤリティを控除</small>
     </article>
     <article class="reverse-card">
       <span>会社計上粗利</span>
@@ -2995,7 +3006,7 @@ function setReverse(values, result) {
 
   document.getElementById("phaseBadge").textContent = reverse.label;
   if (isCurrent) {
-    document.getElementById("sourceOwnerRevenue").textContent = formatMan(result.grossCommission);
+    document.getElementById("sourceOwnerRevenue").textContent = formatMan(result.ownerRevenue);
     document.getElementById("sourceAgentCommissionRevenue").textContent = formatMan(result.annualRevenue);
     document.getElementById("sourceDeskRevenue").textContent = formatMan(result.annualCost);
   } else {
@@ -3023,8 +3034,9 @@ function currentRankInput(value, field, index, suffix = "", step = "1") {
 
 function currentEmployeeIncomeForRank(rank, annualTransactionMan) {
   const fixedSalaryMan = Math.max(0, Number(rank.fixedSalaryYen) || 0) / 10000 * 12;
+  const bonusMan = Math.max(0, Number(rank.fixedSalaryYen) || 0) / 10000 * Math.max(0, Number(rank.bonusMonths) || 0);
   const commissionRate = Math.max(0, Number(rank.commissionRate) || 0) / 100;
-  return fixedSalaryMan + annualTransactionMan * commissionRate;
+  return fixedSalaryMan + bonusMan + annualTransactionMan * commissionRate;
 }
 
 function currentCompanyProfitForRank(rank, count, annualTransactionMan) {
@@ -3036,9 +3048,21 @@ function renderRankRows() {
   const isCurrent = activePreset === "current";
   const rankPanel = document.querySelector(".rank-panel");
   if (rankPanel) rankPanel.hidden = !isCurrent;
-  document.getElementById("rankTitle").textContent = isCurrent ? "タイプ別歩合率" : "ランク別フィー・コミッション設定";
+  document.getElementById("rankTitle").textContent = isCurrent ? "社員報酬タイプ" : "ランク別フィー・コミッション設定";
   document.getElementById("rankSource").hidden = isCurrent;
-  document.getElementById("rankReference").hidden = !isCurrent;
+  const rankReference = document.getElementById("rankReference");
+  rankReference.hidden = !isCurrent;
+  rankReference.innerHTML = isCurrent ? currentRankCompensations
+    .map((rank) => `
+      <article>
+        <strong>${rank.rank} ${rank.payType || ""}</strong>
+        <span>固定給 ${formatInputYen(rank.fixedSalaryYen)}円</span>
+        <span>歩合率 ${formatPercent(rank.commissionRate || 0)}</span>
+        <span>賞与 ${formatCompact(rank.bonusMonths || 0)}か月</span>
+        <small>法定福利費 ${formatPercent(rank.welfareRate || 0)}</small>
+      </article>
+    `)
+    .join("") : "";
 
   const table = document.querySelector(".rank-table");
   table.classList.toggle("rank-table--current", isCurrent);
@@ -3046,9 +3070,11 @@ function renderRankRows() {
   const tableHead = document.querySelector(".rank-table thead");
   tableHead.innerHTML = isCurrent ? `
     <tr>
-      <th>ランク</th>
+      <th>タイプ</th>
+      <th>報酬タイプ</th>
       <th>固定給</th>
       <th>歩合率</th>
+      <th>賞与</th>
       <th>法定福利費</th>
     </tr>
   ` : `
@@ -3068,8 +3094,12 @@ function renderRankRows() {
         <td>
           <input class="rank-name-input" data-current-rank-index="${index}" data-field="rank" type="text" value="${rank.rank}" aria-label="ランク名" />
         </td>
+        <td>
+          <input class="rank-pay-type-input" data-current-rank-index="${index}" data-field="payType" type="text" value="${rank.payType || ""}" aria-label="${rank.rank} 報酬タイプ" />
+        </td>
         <td>${currentRankInput(rank.fixedSalaryYen, "fixedSalaryYen", index, "<span>円</span>")}</td>
         <td>${currentRankInput(rank.commissionRate, "commissionRate", index, "<span>%</span>")}</td>
+        <td>${currentRankInput(rank.bonusMonths, "bonusMonths", index, "<span>か月</span>", "0.1")}</td>
         <td>${currentRankInput(rank.welfareRate, "welfareRate", index, "<span>%</span>")}</td>
       </tr>
     `)
@@ -3098,6 +3128,8 @@ function updateRankData(target) {
     if (!rank || !field) return;
     if (field === "rank") {
       rank.rank = target.value.trim() || rank.rank;
+    } else if (field === "payType") {
+      rank.payType = target.value.trim() || rank.payType;
     } else {
       rank[field] = Math.max(0, parseFormattedNumber(target.value));
     }
@@ -3126,6 +3158,15 @@ function renderRankPlanRows() {
   const isCurrent = activePreset === "current";
   document.getElementById("rankPlanEyebrow").textContent = isCurrent ? "Sales Mix" : "Recruiting Mix";
   document.getElementById("rankPlanTitle").textContent = isCurrent ? "タイプ別売上計画" : "採用・報酬設計";
+  const typeButtons = document.getElementById("rankPlanTypeButtons");
+  if (typeButtons) {
+    typeButtons.hidden = !isCurrent;
+    typeButtons.innerHTML = isCurrent ? currentSalesPlanPresets
+      .map((preset) => `<button class="rank-plan-type-button" data-current-sales-plan="${preset.index}" type="button">${preset.label}タイプ</button>`)
+      .join("") : "";
+  }
+  const phaseBadge = document.getElementById("phaseBadge");
+  if (phaseBadge) phaseBadge.hidden = isCurrent;
   const table = document.querySelector(".rank-plan-table");
   table.classList.toggle("rank-plan-table--current", isCurrent);
   table.classList.toggle("rank-plan-table--agent", !isCurrent);
@@ -3158,19 +3199,21 @@ function renderRankPlanRows() {
   const summaryCell = document.getElementById("rankPlanSummaryCell");
   if (summaryCell) summaryCell.colSpan = isCurrent ? 6 : 9;
 
-  document.getElementById("rankPlanRows").innerHTML = agentRanks
+  const rowRanks = isCurrent ? currentRankCompensations : agentRanks;
+  document.getElementById("rankPlanRows").innerHTML = rowRanks
     .map((rank, index) => {
       const plan = rankPlan[index] || { count: 0, annualTransactionMan: 0 };
       const currentRank = currentRankCompensations[index] || {};
-      const officeRevenue = plan.count * commissionRevenueForRank(rank, plan.annualTransactionMan);
-      const agentIncome = agentIncomeForRank(rank, plan.annualTransactionMan);
+      const agentRank = agentRanks[index] || agentRanks.at(-1);
+      const officeRevenue = plan.count * commissionRevenueForRank(agentRank, plan.annualTransactionMan);
+      const agentIncome = agentIncomeForRank(agentRank, plan.annualTransactionMan);
       const currentEmployeeIncome = currentEmployeeIncomeForRank(currentRank, plan.annualTransactionMan);
       const currentCompanyProfit = currentCompanyProfitForRank(currentRank, plan.count, plan.annualTransactionMan);
       return isCurrent ? `
         <tr>
-          <td><strong>${currentRank.rank || rank.rank}タイプ</strong></td>
-          <td><input class="rank-plan-input" data-plan-index="${index}" data-field="count" type="number" min="0" step="1" value="${plan.count}" aria-label="${rank.rank}タイプ 人数" /><span>名</span></td>
-          <td><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${rank.rank}タイプ 年間売上" /><span>万円</span></td>
+          <td><strong>${currentRank.rank || rank.rank}タイプ</strong><small>${currentRank.payType || ""}</small></td>
+          <td><input class="rank-plan-input" data-plan-index="${index}" data-field="count" type="number" min="0" step="1" value="${plan.count}" aria-label="${currentRank.rank || rank.rank}タイプ 人数" /><span>名</span></td>
+          <td><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${currentRank.rank || rank.rank}タイプ 年間売上" /><span>万円</span></td>
           <td>${formatPercent(currentRank.commissionRate || 0)}</td>
           <td id="rankPlanAgentIncome-${index}">${formatMan(currentEmployeeIncome)}</td>
           <td id="rankPlanOffice-${index}">${formatMan(currentCompanyProfit)}</td>
@@ -3198,7 +3241,8 @@ function renderRankPlanRows() {
 function setRankPlanRowOutputs() {
   const isCurrent = activePreset === "current";
   let totalOfficeProfit = 0;
-  agentRanks.forEach((rank, index) => {
+  const rowRanks = isCurrent ? currentRankCompensations : agentRanks;
+  rowRanks.forEach((rank, index) => {
     const plan = rankPlan[index] || { count: 0, annualTransactionMan: 0 };
     const currentRank = currentRankCompensations[index] || {};
     const officeProfit = isCurrent
@@ -3298,6 +3342,18 @@ function applyQuickRankPlan() {
   plan.forEach((row, index) => {
     rankPlan[index] = { ...row };
   });
+  renderRankPlanRows();
+  render();
+}
+
+function applyCurrentSalesPlan(index) {
+  if (activePreset !== "current") return;
+  const preset = currentSalesPlanPresets.find((item) => item.index === index);
+  if (!preset) return;
+  currentRankCompensations.forEach((_, rowIndex) => {
+    rankPlan[rowIndex] = { count: 0, annualTransactionMan: 0 };
+  });
+  rankPlan[index] = { count: preset.count, annualTransactionMan: preset.annualTransactionMan };
   renderRankPlanRows();
   render();
 }
@@ -3478,6 +3534,11 @@ document.querySelectorAll(".preset").forEach((button) => {
   button.addEventListener("click", () => applyPreset(button.dataset.preset));
 });
 document.getElementById("phaseBadge").addEventListener("click", applyQuickRankPlan);
+document.getElementById("rankPlanTypeButtons").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-current-sales-plan]");
+  if (!button) return;
+  applyCurrentSalesPlan(Number(button.dataset.currentSalesPlan));
+});
 document.getElementById("presentationPhaseRow").addEventListener("click", (event) => {
   const button = event.target.closest("[data-presentation-preset]");
   if (button) applyPreset(button.dataset.presentationPreset);

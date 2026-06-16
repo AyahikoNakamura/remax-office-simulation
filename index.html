@@ -421,7 +421,7 @@
                 <input id="generalExpense" type="number" min="0" max="1000" step="1" value="0" inputmode="numeric" />
               </label>
               <label class="field field--number current-assumption-field" hidden>
-                <span>営業固定給＋法定福利費</span>
+                <span>営業人件費</span>
                 <strong><output id="salesEmployeeSalaryOut">0</output> 万円/月</strong>
                 <input id="salesEmployeeSalary" type="number" min="0" max="1000" step="1" value="0" inputmode="numeric" readonly />
               </label>
@@ -453,26 +453,7 @@
               <strong class="rank-source" id="rankSource">KYOUEI札幌AGTフィー報酬割合</strong>
             </div>
 
-            <div class="rank-reference" id="rankReference" hidden>
-              <article>
-                <strong>A 安定重視型</strong>
-                <span>固定給 25万〜35万円</span>
-                <span>歩合率 1%〜5%</span>
-                <small>大手デベロッパーやハウスメーカーに多い。</small>
-              </article>
-              <article>
-                <strong>B バランス型</strong>
-                <span>固定給 20万〜25万円</span>
-                <span>歩合率 5%〜15%</span>
-                <small>中堅〜大手の売買仲介会社で最も一般的。</small>
-              </article>
-              <article>
-                <strong>C 成果追求型</strong>
-                <span>固定給 15万〜20万円</span>
-                <span>歩合率 20%〜30%</span>
-                <small>投資用不動産や中小の売買仲介に多い。</small>
-              </article>
-            </div>
+            <div class="rank-reference" id="rankReference" hidden></div>
 
             <div class="table-wrap">
               <table class="rank-table">
@@ -560,6 +541,7 @@
               </div>
               <div class="result-actions">
                 <button class="phase-badge" id="phaseBadge" type="button">利益300万円</button>
+                <div class="rank-plan-type-buttons" id="rankPlanTypeButtons" hidden aria-label="社員タイプ別入力"></div>
                 <button class="reset-button result-reset-button" id="resetButton" type="button">リセット</button>
               </div>
             </div>

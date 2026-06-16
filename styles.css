@@ -1824,6 +1824,30 @@ body[data-view="agents"] .results > :not(.agent-register-panel) {
   margin: 0;
 }
 
+.rank-plan-type-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rank-plan-type-button {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: #fff;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.rank-plan-type-button:hover,
+.rank-plan-type-button:focus-visible {
+  color: #fff;
+  border-color: var(--navy);
+  background: var(--navy);
+}
+
 .rank-plan-summary article {
   min-height: 0;
   padding: 8px 16px;
@@ -1850,12 +1874,12 @@ body[data-view="agents"] .results > :not(.agent-register-panel) {
 }
 
 .rank-table {
-  min-width: 880px;
+  min-width: 1040px;
 }
 
 .rank-reference {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   margin: 8px 0 18px;
 }
@@ -1942,6 +1966,16 @@ body[data-view="agents"] .results > :not(.agent-register-panel) {
 .rank-name-input {
   width: 68px;
   text-align: left;
+  font-weight: 800;
+}
+
+.rank-pay-type-input {
+  width: 150px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: #fff;
   font-weight: 800;
 }
 
@@ -2150,6 +2184,8 @@ body[data-view="agents"] .results > :not(.agent-register-panel) {
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .phase-badge {
