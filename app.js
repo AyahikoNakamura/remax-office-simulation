@@ -1,5 +1,5 @@
 const presets = {
-  current: { fee: 0, ownerSalary: 100, rent: 30, officeFee: 35, adCoopFee: 10, officeStaff: 25, otherExpense: 80, salesEmployeeSalary: 0, generalExpense: 50, salesRoyaltyRate: 0, ownerTransaction: 0, targetProfit: 0 },
+  current: { fee: 0, ownerSalary: 90, rent: 35, officeFee: 0, adCoopFee: 0, officeStaff: 25, otherExpense: 130, salesEmployeeSalary: 0, generalExpense: 70, salesRoyaltyRate: 0, ownerTransaction: 1200, targetProfit: 0 },
   phase300: { fee: 80, ownerSalary: 30, rent: 20, officeFee: 10, adCoopFee: 3, officeStaff: 0, otherExpense: 10, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 0, ownerTransaction: 500, targetProfit: 300 },
   phase500: { fee: 80, ownerSalary: 50, rent: 20, officeFee: 10, adCoopFee: 3, officeStaff: 0, otherExpense: 10, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 0, ownerTransaction: 0, targetProfit: 500 },
   phase1000: { fee: 80, ownerSalary: 80, rent: 20, officeFee: 10, adCoopFee: 3, officeStaff: 30, otherExpense: 30, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 0, ownerTransaction: 500, targetProfit: 1000 },
@@ -8,8 +8,8 @@ const presets = {
 
 const phasePlans = {
   current: {
-    label: "現在の状況",
-    copy: "現在の状況を確認するためのページです。初期値は0から入力します。",
+    label: "従来の不動産会社",
+    copy: "従来型（歩合・固定費）の不動産会社の収益構造を確認するページです。RE/MAXモデルとの比較用。初期値は0から入力します。",
     fixedAnnual: 0,
     deskAnnual: 0,
     pdfRevenue: 0,
@@ -62,10 +62,9 @@ const defaultAgentRanks = [
   { rank: "D", note: "契約初年度のみ", monthlyFeeYen: 14000, licensedRate: 50, unlicensedRate: 40, thresholdMan: 300, bonusLicensedRate: 60, bonusUnlicensedRate: null },
 ];
 const currentRankCompensationDefaults = [
-  { rank: "高固定給型", payType: "固定給＋低歩合", fixedSalaryYen: 250000, commissionRate: 5, bonusMonths: 0, welfareRate: 16 },
+  { rank: "固定給型", payType: "固定給＋低歩合", fixedSalaryYen: 250000, commissionRate: 10, bonusMonths: 0, welfareRate: 16 },
   { rank: "標準型", payType: "固定給＋標準歩合", fixedSalaryYen: 200000, commissionRate: 15, bonusMonths: 0, welfareRate: 16 },
-  { rank: "高歩合型", payType: "固定給＋高歩合", fixedSalaryYen: 150000, commissionRate: 30, bonusMonths: 0, welfareRate: 16 },
-  { rank: "低固定高歩合型", payType: "固定給＋高歩合", fixedSalaryYen: 100000, commissionRate: 40, bonusMonths: 0, welfareRate: 16 },
+  { rank: "歩合重視型", payType: "固定給＋高歩合", fixedSalaryYen: 180000, commissionRate: 30, bonusMonths: 0, welfareRate: 16 },
   { rank: "店長型", payType: "固定給＋賞与", fixedSalaryYen: 350000, commissionRate: 0, bonusMonths: 3, welfareRate: 16 },
 ];
 const agentRankCommissionRates = { A: 80, B: 70, C: 60, D: 50 };
@@ -73,11 +72,10 @@ const agentRankOptions = Object.keys(agentRankCommissionRates);
 const agentLicenseOptions = ["宅建士（専任）", "宅建士", "無"];
 const phaseRankPlans = {
   current: [
-    { count: 0, annualTransactionMan: 0 },
-    { count: 0, annualTransactionMan: 0 },
-    { count: 0, annualTransactionMan: 0 },
-    { count: 0, annualTransactionMan: 0 },
-    { count: 0, annualTransactionMan: 0 },
+    { count: 5, annualTransactionMan: 1300 },      // 一括査定型の主力：固定給型(25万/10%)5名・1人1,300万手数料
+    { count: 0, annualTransactionMan: 0 },         // 標準型
+    { count: 0, annualTransactionMan: 0 },         // 歩合重視型
+    { count: 0, annualTransactionMan: 0 },         // 店長型
   ],
   phase300: [
     { count: 0, annualTransactionMan: 0 },
@@ -113,12 +111,43 @@ const phaseQuickRankPlans = {
   ],
 };
 const currentSalesPlanPresets = [
-  { label: "高固定給型", index: 0, count: 4, annualTransactionMan: 1800 },
-  { label: "標準型", index: 1, count: 4, annualTransactionMan: 1800 },
-  { label: "高歩合型", index: 2, count: 4, annualTransactionMan: 1800 },
-  { label: "低固定高歩合型", index: 3, count: 4, annualTransactionMan: 1800 },
-  { label: "店長型", index: 4, count: 4, annualTransactionMan: 1800 },
+  { label: "固定給型", index: 0, count: 5, annualTransactionMan: 1300 },   // リード型・人数多め・中生産性
+  { label: "標準型", index: 1, count: 4, annualTransactionMan: 1500 },     // 標準
+  { label: "歩合重視型", index: 2, count: 3, annualTransactionMan: 1900 }, // 少数精鋭・高生産性
+  { label: "店長型", index: 3, count: 3, annualTransactionMan: 1400 },     // 店長型・固定給高め・中生産性
 ];
+// 経営タイプ × 報酬タイプ の実態スタッフィング（人数 × 1人あたり年間仲介手数料・万円）。
+// 固定費は経営タイプで決まり、それに合う人数・手数料に調整。
+// 一括査定型＝集客費が重く薄利／属人型＝集客費が軽く高利益、という対比になる。
+const salesPlanByManagement = {
+  ikkatsu: [
+    { count: 5, annualTransactionMan: 1300 },  // 固定給＋低歩合（リード型の主役）
+    { count: 4, annualTransactionMan: 1500 },  // 固定給＋標準歩合
+    { count: 3, annualTransactionMan: 2100 },  // 固定給＋高歩合
+    { count: 3, annualTransactionMan: 1800 },  // 固定給＋賞与（店長型）
+  ],
+  zokujin: [
+    { count: 4, annualTransactionMan: 1000 },  // 固定給＋低歩合
+    { count: 4, annualTransactionMan: 1000 },  // 固定給＋標準歩合
+    { count: 3, annualTransactionMan: 1600 },  // 固定給＋高歩合（属人型の主役）
+    { count: 2, annualTransactionMan: 1600 },  // 固定給＋賞与（店長型）
+  ],
+};
+// 従来の不動産会社の2つの経営タイプ（事業前提＋社長手数料＋採用計画を一括適用）
+const managementTypePresets = {
+  ikkatsu: {
+    label: "一括査定型", sub: "リード・仕組み依存",
+    values: { ownerSalary: 90, rent: 35, officeFee: 0, adCoopFee: 0, officeStaff: 25, otherExpense: 130, generalExpense: 70, salesRoyaltyRate: 0, ownerTransaction: 1200, targetProfit: 0 },
+    planIndex: 0, count: 4, perCommission: 1300,   // 固定給型(25万/10%)×4名
+  },
+  zokujin: {
+    label: "属人型", sub: "人脈・紹介依存",
+    values: { ownerSalary: 100, rent: 35, officeFee: 0, adCoopFee: 0, officeStaff: 25, otherExpense: 50, generalExpense: 70, salesRoyaltyRate: 0, ownerTransaction: 2000, targetProfit: 0 },
+    planIndex: 2, count: 4, perCommission: 1700,   // 歩合重視型(18万/30%)×4名
+  },
+};
+let activeManagementType = "ikkatsu";
+let activeSalesPlanIndex = 0;   // タイプ別売上計画で選択中の報酬タイプ（ボタン強調用・既定=固定給型）
 const defaultRankPlan = phaseRankPlans.phase300;
 const agentRanks = defaultAgentRanks.map((rank) => ({ ...rank }));
 const currentRankCompensations = currentRankCompensationDefaults.map((rank) => ({ ...rank }));
@@ -126,7 +155,7 @@ const rankPlan = defaultRankPlan.map((plan) => ({ ...plan }));
 
 const ids = ["fee", "ownerSalary", "rent", "officeFee", "adCoopFee", "officeStaff", "otherExpense", "salesEmployeeSalary", "generalExpense", "salesRoyaltyRate", "ownerTransaction", "targetProfit"];
 const inputs = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
-let activePreset = "phase300";
+let activePreset = "current";
 const cloneRows = (rows) => rows.map((row) => ({ ...row }));
 const createInitialPresetState = (name) => ({
   values: { ...(presets[name] || presets.phase300) },
@@ -514,8 +543,8 @@ function setAssumptionFieldState() {
   });
 
   const ownerLabels = {
-    ownerDealTitle: isCurrent ? "社長の年間取引額" : "オーナーの年間取引額",
-    ownerTransactionLabel: isCurrent ? "社長年間取引額" : "オーナー年間取引額",
+    ownerDealTitle: isCurrent ? "社長の年間仲介手数料" : "オーナーの年間仲介手数料",
+    ownerTransactionLabel: isCurrent ? "社長年間仲介手数料" : "オーナー年間仲介手数料",
     ownerRevenueLabel: isCurrent ? "社長粗利貢献" : "オーナー粗利貢献",
   };
 
@@ -2799,7 +2828,7 @@ function loadAccountingPdfs(files) {
 function setKpis(values, result) {
   const isCurrent = activePreset === "current";
   document.getElementById("annualRevenueLabel").textContent = isCurrent ? "年間会社計上粗利" : "現在プランの年間オフィス粗利";
-  document.getElementById("annualRevenueNote").textContent = isCurrent ? "売上高から歩合・ロイヤリティを控除後" : "オーナー粗利 + Agフィー年間利益 + Ag取引粗利";
+  document.getElementById("annualRevenueNote").textContent = isCurrent ? "売上高から歩合・ロイヤリティを控除後" : "オーナー粗利 + Agフィー年間利益 + Ag手数料粗利";
   document.getElementById("annualCostLabel").textContent = isCurrent ? "年間販管費" : "年間固定費";
   document.getElementById("annualCostNote").textContent = isCurrent ? "現在設定の販管費合計" : "事業前提の月額合計 × 12か月";
   document.getElementById("annualProfitLabel").textContent = isCurrent ? "年間営業利益" : "現在プランの年間営業利益";
@@ -2823,7 +2852,7 @@ function setInsight(values, result) {
 
   if (targetGap < 0) {
     headline.textContent = "目標利益までの不足が見える";
-    insight.textContent = `現在プランの年間営業利益は約${formatMan(result.annualProfit)}で、目標利益まであと${formatMan(Math.abs(targetGap))}です。ランク別採用計画の人数や1人あたり年間取引金額を調整すると、不足の埋め方を確認できます。`;
+    insight.textContent = `現在プランの年間営業利益は約${formatMan(result.annualProfit)}で、目標利益まであと${formatMan(Math.abs(targetGap))}です。ランク別採用計画の人数や1人あたり年間仲介手数料を調整すると、不足の埋め方を確認できます。`;
     return;
   }
 
@@ -2864,7 +2893,7 @@ function seminarTalkPoint(reverse, result, targetGap) {
   if (activePreset === "phase3000") {
     return "採用力と生産性が伸びた時に、利益が大きく拡張する構造を確認します。";
   }
-  return "目標利益、採用人数、必要取引額の関係を確認します。";
+  return "目標利益、採用人数、必要手数料の関係を確認します。";
 }
 
 function renderSeminarSummary(values, result) {
@@ -2884,7 +2913,7 @@ function renderSeminarSummary(values, result) {
   document.getElementById("seminarSecondLabel").textContent = isCurrent ? "会社計上粗利" : "採用人数";
   document.getElementById("seminarAgents").textContent = isCurrent ? formatMan(result.annualRevenue) : `${result.agents.toLocaleString("ja-JP")}名`;
   document.getElementById("seminarSecondNote").textContent = isCurrent ? "売上高 - 歩合 - ロイヤリティ" : "ランク別採用計画の合計";
-  document.getElementById("seminarThirdLabel").textContent = isCurrent ? "年間販管費" : "Ag1人あたり必要取引額";
+  document.getElementById("seminarThirdLabel").textContent = isCurrent ? "年間販管費" : "Ag1人あたり必要手数料";
   document.getElementById("seminarRequiredPerAgent").textContent = isCurrent ? formatMan(result.annualCost) : formatMan(reverse.requiredPerAgent);
   document.getElementById("seminarThirdNote").textContent = isCurrent ? "固定費・営業人件費の年間合計" : "目標利益から逆算";
   document.getElementById("seminarFourthLabel").textContent = isCurrent ? "営業利益率" : "5年累計利益";
@@ -2893,7 +2922,7 @@ function renderSeminarSummary(values, result) {
   document.getElementById("seminarTalkPoint").textContent = seminarTalkPoint(reverse, result, targetGap);
   document.getElementById("seminarRevenueMix").textContent = isCurrent
     ? `会社計上粗利 ${formatMan(result.annualRevenue)}、年間販管費 ${formatMan(result.annualCost)}、営業利益 ${formatMan(result.annualProfit)}です。`
-    : `オーナー粗利 ${formatMan(reverse.ownerRevenue)}、Agフィー利益 ${formatMan(reverse.deskRevenue)}、Ag取引粗利 ${formatMan(result.agentCommissionRevenue)}です。`;
+    : `オーナー粗利 ${formatMan(reverse.ownerRevenue)}、Agフィー利益 ${formatMan(reverse.deskRevenue)}、Ag手数料粗利 ${formatMan(result.agentCommissionRevenue)}です。`;
 }
 
 function reverseCalc(values, result) {
@@ -2958,29 +2987,26 @@ function setReverse(values, result) {
 
   if (resultTitle) resultTitle.textContent = isCurrent ? "現在の損益結果" : "現在プランの結果";
   if (grossSourceTitle) grossSourceTitle.textContent = isCurrent ? "年間会社計上粗利の内訳" : "年間オフィス粗利の内訳";
+  const sourceSumLabel = document.getElementById("sourceSumLabel");
+  if (sourceSumLabel) sourceSumLabel.textContent = isCurrent ? "上の2項目を合計" : "上の3項目を合計";
   grossSourceGrid.classList.toggle("reverse-grid--formula", !isCurrent);
   grossSourceGrid.classList.toggle("reverse-grid--current-source", isCurrent);
   grossSourceGrid.innerHTML = isCurrent ? `
     <article class="reverse-card">
       <span>社長粗利</span>
       <strong id="sourceOwnerRevenue">0万円</strong>
-      <small>社長取引額からロイヤリティを控除</small>
+      <small>社長手数料からロイヤリティを控除</small>
     </article>
     <article class="reverse-card">
-      <span>会社計上粗利</span>
+      <span>社員粗利</span>
       <strong id="sourceAgentCommissionRevenue">0万円</strong>
-      <small>売上高から歩合・ロイヤリティを控除</small>
-    </article>
-    <article class="reverse-card">
-      <span>年間販管費</span>
-      <strong id="sourceDeskRevenue">0万円</strong>
-      <small>固定費の年間合計</small>
+      <small>社員手数料からロイヤリティ・歩合を控除</small>
     </article>
   ` : `
     <article class="reverse-card">
       <span>オーナー粗利</span>
       <strong id="sourceOwnerRevenue">0万円</strong>
-      <small>オーナー取引額 × 94%</small>
+      <small>オーナー手数料 × 94%</small>
     </article>
     <span class="formula-operator" aria-hidden="true">+</span>
     <article class="reverse-card">
@@ -2990,7 +3016,7 @@ function setReverse(values, result) {
     </article>
     <span class="formula-operator" aria-hidden="true">+</span>
     <article class="reverse-card">
-      <span>Ag取引粗利</span>
+      <span>Ag手数料粗利</span>
       <strong id="sourceAgentCommissionRevenue">0万円</strong>
       <small>採用・報酬設計から計算</small>
     </article>
@@ -2999,8 +3025,8 @@ function setReverse(values, result) {
   document.getElementById("phaseBadge").textContent = reverse.label;
   if (isCurrent) {
     document.getElementById("sourceOwnerRevenue").textContent = formatMan(result.ownerRevenue);
-    document.getElementById("sourceAgentCommissionRevenue").textContent = formatMan(result.annualRevenue);
-    document.getElementById("sourceDeskRevenue").textContent = formatMan(result.annualCost);
+    // 社員計上粗利＝会社計上粗利(総額) − 社長粗利（タイプ別売上計画の合計と一致）
+    document.getElementById("sourceAgentCommissionRevenue").textContent = formatMan(result.annualRevenue - result.ownerRevenue);
   } else {
     document.getElementById("sourceOwnerRevenue").textContent = formatMan(reverse.ownerRevenue);
     document.getElementById("sourceAgentCommissionRevenue").textContent = formatMan(result.agentCommissionRevenue);
@@ -3044,18 +3070,9 @@ function renderRankRows() {
   document.getElementById("rankTitle").textContent = isCurrent ? "社員報酬タイプ" : "ランク別フィー・コミッション設定";
   document.getElementById("rankSource").hidden = isCurrent;
   const rankReference = document.getElementById("rankReference");
-  rankReference.hidden = !isCurrent;
-  rankReference.innerHTML = isCurrent ? currentRankCompensations
-    .map((rank) => `
-      <article>
-        <strong>${rank.rank} ${rank.payType || ""}</strong>
-        <span>固定給 ${formatInputYen(rank.fixedSalaryYen)}円</span>
-        <span>歩合率 ${formatPercent(rank.commissionRate || 0)}</span>
-        <span>賞与 ${formatCompact(rank.bonusMonths || 0)}か月</span>
-        <small>法定福利費 ${formatPercent(rank.welfareRate || 0)}</small>
-      </article>
-    `)
-    .join("") : "";
+  // 報酬カード（上部ボックス）は下の編集テーブルと重複するため非表示
+  rankReference.hidden = true;
+  rankReference.innerHTML = "";
 
   const table = document.querySelector(".rank-table");
   table.classList.toggle("rank-table--current", isCurrent);
@@ -3063,7 +3080,6 @@ function renderRankRows() {
   const tableHead = document.querySelector(".rank-table thead");
   tableHead.innerHTML = isCurrent ? `
     <tr>
-      <th>タイプ</th>
       <th>報酬タイプ</th>
       <th>固定給</th>
       <th>歩合率</th>
@@ -3084,9 +3100,6 @@ function renderRankRows() {
   document.getElementById("rankRows").innerHTML = isCurrent ? currentRankCompensations
     .map((rank, index) => `
       <tr>
-        <td>
-          <input class="rank-name-input" data-current-rank-index="${index}" data-field="rank" type="text" value="${rank.rank}" aria-label="ランク名" />
-        </td>
         <td>
           <input class="rank-pay-type-input" data-current-rank-index="${index}" data-field="payType" type="text" value="${rank.payType || ""}" aria-label="${rank.rank} 報酬タイプ" />
         </td>
@@ -3156,8 +3169,16 @@ function renderRankPlanRows() {
   if (typeButtons) {
     typeButtons.hidden = !isCurrent;
     typeButtons.innerHTML = isCurrent ? currentSalesPlanPresets
-      .map((preset) => `<button class="rank-plan-type-button" data-current-sales-plan="${preset.index}" type="button">${preset.label}</button>`)
+      .map((preset) => `<button class="rank-plan-type-button${preset.index === activeSalesPlanIndex ? " is-active" : ""}" data-current-sales-plan="${preset.index}" type="button">${(currentRankCompensations[preset.index] || {}).payType || preset.label}</button>`)
       .join("") : "";
+  }
+  const mgmtWrap = document.getElementById("managementTypeSelect");
+  if (mgmtWrap) mgmtWrap.hidden = !isCurrent;
+  const mgmtButtons = document.getElementById("managementTypeButtons");
+  if (mgmtButtons) {
+    mgmtButtons.innerHTML = Object.entries(managementTypePresets)
+      .map(([key, m]) => `<button class="preset${key === activeManagementType ? " is-active" : ""}" data-management-type="${key}" type="button"><strong>${m.label}</strong><small>${m.sub}</small></button>`)
+      .join("");
   }
   const phaseBadge = document.getElementById("phaseBadge");
   if (phaseBadge) phaseBadge.hidden = isCurrent;
@@ -3167,9 +3188,9 @@ function renderRankPlanRows() {
   const tableHead = document.querySelector(".rank-plan-table thead");
   tableHead.innerHTML = isCurrent ? `
     <tr>
-      <th>タイプ</th>
+      <th>報酬タイプ</th>
       <th>人数</th>
-      <th>1人あたり年間売上</th>
+      <th>1人あたり年間仲介手数料</th>
       <th>歩合率</th>
       <th>1人あたり営業社員年収</th>
       <th>会社計上粗利</th>
@@ -3178,13 +3199,13 @@ function renderRankPlanRows() {
     <tr>
       <th>ランク</th>
       <th>採用人数</th>
-      <th>年取引/人</th>
+      <th>年手数料/人</th>
       <th>月額フィー</th>
       <th>コミッション率</th>
       <th>達成基準</th>
       <th><span>達成後</span><small>コミッション率</small></th>
       <th><span>Ag収入/人</span><small>フィー控除後</small></th>
-      <th>取引粗利</th>
+      <th>手数料粗利</th>
     </tr>
   `;
 
@@ -3205,9 +3226,9 @@ function renderRankPlanRows() {
       const currentCompanyProfit = currentCompanyProfitForRank(currentRank, plan.count, plan.annualTransactionMan, currentRoyaltyRate);
       return isCurrent ? `
         <tr>
-          <td><strong>${currentRank.rank || rank.rank}</strong><small>${currentRank.payType || ""}</small></td>
-          <td><input class="rank-plan-input" data-plan-index="${index}" data-field="count" type="number" min="0" step="1" value="${plan.count}" aria-label="${currentRank.rank || rank.rank} 人数" /><span>名</span></td>
-          <td><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${currentRank.rank || rank.rank} 年間売上" /><span>万円</span></td>
+          <td><span class="rank-plan-pay-type">${currentRank.payType || rank.payType || ""}</span></td>
+          <td><span class="unit-input"><input class="rank-plan-input" data-plan-index="${index}" data-field="count" type="number" min="0" step="1" value="${plan.count}" aria-label="${currentRank.rank || rank.rank} 人数" /><span>名</span></span></td>
+          <td><span class="unit-input"><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${currentRank.rank || rank.rank} 年間仲介手数料" /><span>万円</span></span></td>
           <td>${formatPercent(currentRank.commissionRate || 0)}</td>
           <td id="rankPlanAgentIncome-${index}">${formatMan(currentEmployeeIncome)}</td>
           <td id="rankPlanOffice-${index}">${formatMan(currentCompanyProfit)}</td>
@@ -3219,7 +3240,7 @@ function renderRankPlanRows() {
             <small>${rank.note}</small>
           </td>
           <td><span class="unit-input"><input class="rank-plan-input" data-plan-index="${index}" data-field="count" type="number" min="0" step="1" value="${plan.count}" aria-label="${rank.rank}ランク 採用人数" /><span>名</span></span></td>
-          <td><span class="unit-input"><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${rank.rank}ランク 年間取引金額" /><span>万円</span></span></td>
+          <td><span class="unit-input"><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${rank.rank}ランク 年間仲介手数料" /><span>万円</span></span></td>
           <td><span class="unit-input">${rankInput(rank.monthlyFeeYen, "monthlyFeeYen", index, "")}<span>円</span></span></td>
           <td><span class="unit-input">${rankInput(rank.licensedRate, "licensedRate", index)}<span>%</span></span></td>
           <td><span class="unit-input">${rankInput(rank.thresholdMan, "thresholdMan", index)}<span>万円</span></span></td>
@@ -3288,7 +3309,7 @@ function setRankPlanSummary(result) {
       <small>ランク別人数の合計</small>
     </article>
     <article>
-      <span>年間取引金額</span>
+      <span>年間仲介手数料</span>
       <strong>${formatMan(plan.grossCommission)}</strong>
       <small>各ランクの人数 × 年間金額</small>
     </article>
@@ -3346,10 +3367,27 @@ function applyCurrentSalesPlan(index) {
   if (activePreset !== "current") return;
   const preset = currentSalesPlanPresets.find((item) => item.index === index);
   if (!preset) return;
+  activeSalesPlanIndex = index;
   currentRankCompensations.forEach((_, rowIndex) => {
     rankPlan[rowIndex] = { count: 0, annualTransactionMan: 0 };
   });
-  rankPlan[index] = { count: preset.count, annualTransactionMan: preset.annualTransactionMan };
+  const plan = (salesPlanByManagement[activeManagementType] || salesPlanByManagement.ikkatsu)[index] || { count: 0, annualTransactionMan: 0 };
+  rankPlan[index] = { count: plan.count, annualTransactionMan: plan.annualTransactionMan };
+  renderRankPlanRows();
+  render();
+}
+
+function applyManagementType(key) {
+  if (activePreset !== "current") return;
+  const m = managementTypePresets[key];
+  if (!m) return;
+  activeManagementType = key;
+  activeSalesPlanIndex = m.planIndex;
+  Object.entries(m.values).forEach(([id, val]) => { if (inputs[id]) inputs[id].value = val; });
+  currentRankCompensations.forEach((_, i) => { rankPlan[i] = { count: 0, annualTransactionMan: 0 }; });
+  const natural = (salesPlanByManagement[key] || [])[m.planIndex] || { count: m.count, annualTransactionMan: m.perCommission };
+  rankPlan[m.planIndex] = { count: natural.count, annualTransactionMan: natural.annualTransactionMan };
+  renderRankRows();
   renderRankPlanRows();
   render();
 }
@@ -3398,6 +3436,14 @@ function applyPreset(name) {
 }
 
 function resetAll() {
+  if (activePreset === "current") {
+    // リセット＝タイプ別売上計画を全て0に（人数・手数料）。報酬タイプ・事業前提・社長手数料はそのまま。
+    currentRankCompensations.forEach((_, i) => { rankPlan[i] = { count: 0, annualTransactionMan: 0 }; });
+    activeSalesPlanIndex = null;
+    renderRankPlanRows();
+    render();
+    return;
+  }
   presetStates[activePreset] = createInitialPresetState(activePreset);
   loadPresetState(activePreset);
   document.querySelectorAll(".preset").forEach((button) => {
@@ -3543,6 +3589,11 @@ document.getElementById("rankPlanTypeButtons").addEventListener("click", (event)
   if (!button) return;
   applyCurrentSalesPlan(Number(button.dataset.currentSalesPlan));
 });
+document.getElementById("managementTypeButtons").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-management-type]");
+  if (!button) return;
+  applyManagementType(button.dataset.managementType);
+});
 
 actualSalesRows = readActualSalesRows();
 if (actualSalesRows.length) {
@@ -3555,6 +3606,7 @@ document.getElementById("agentContractInput").value = getTodayInputValue();
 document.getElementById("agentAnnualYear").value = new Date().getFullYear();
 document.getElementById("headOfficeMonthlyStartInput").value = getTodayInputValue();
 document.getElementById("headOfficeOneTimeStartInput").value = getTodayInputValue();
+loadPresetState(activePreset);   // 初期表示を既定プリセット（従来の不動産会社）の値に同期
 syncAgentCommissionInput();
 renderRankRows();
 renderRankPlanRows();

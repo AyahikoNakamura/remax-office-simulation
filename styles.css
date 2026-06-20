@@ -457,6 +457,7 @@ body[data-view="agents"] .results > :not(.agent-register-panel) {
   color: inherit;
   font-size: clamp(1.55rem, 3vw, 2.35rem);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .insight-band {
@@ -557,8 +558,9 @@ body[data-view="agents"] .results > :not(.agent-register-panel) {
   display: block;
   margin: 10px 0 8px;
   color: var(--ink);
-  font-size: clamp(1.65rem, 3vw, 2.8rem);
+  font-size: clamp(1.5rem, 2.6vw, 2.8rem);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .seminar-metric--primary {
@@ -606,6 +608,52 @@ body[data-seminar="true"] .seminar-summary-panel {
   border-color: rgba(225, 37, 27, 0.34);
   box-shadow: 0 18px 55px rgba(0, 61, 165, 0.14);
 }
+
+/* === セミナー表示を説明会デッキ（白基調ミニマル・極太・余白広め）に合わせる ===
+   写真ヒーローを撤去し、デッキの head() 風（白地＋赤い縦罫＋紺のアイブロー）に。
+   主要数字・見出しを拡大し、ボックスの余白を広げて「操作できるスライド」に見せる。
+   ※通常表示(body[data-seminar="false"])には一切影響しない追記オーバーライド。 */
+body[data-seminar="true"] .hero {
+  min-height: 0;
+  background: #fff;
+  color: #1a1a1a;
+  border-bottom: 1px solid #e9e9e9;
+}
+body[data-seminar="true"] .hero__media { display: none; }
+body[data-seminar="true"] .hero__content {
+  width: min(1180px, calc(100% - 56px));
+  padding: 30px 0 22px 22px;
+  border-left: 7px solid #cb0321;
+}
+body[data-seminar="true"] .hero .eyebrow {
+  color: #004283;
+  opacity: 1;
+  font-size: 0.82rem;
+}
+body[data-seminar="true"] .hero h1 {
+  max-width: none;
+  margin-bottom: 10px;
+  color: #1a1a1a;
+  font-size: clamp(1.95rem, 2.8vw, 2.7rem);
+  line-height: 1.12;
+}
+body[data-seminar="true"] .hero h1 span { display: inline; }
+body[data-seminar="true"] .hero p:not(.eyebrow) {
+  max-width: 880px;
+  color: #5a5a5a;
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+body[data-seminar="true"] .hero p:not(.eyebrow) span { display: inline; }
+/* 白ヘッダーになったので、本文がヒーローへ食い込む負マージンを解除 */
+body[data-seminar="true"] .workspace { margin-top: 16px; }
+/* スライド感：主要数字・見出しを大きく、余白を広げる */
+body[data-seminar="true"] .seminar-summary-panel { padding: 30px 30px 26px; }
+body[data-seminar="true"] .seminar-summary-heading h2 { font-size: clamp(1.6rem, 2.4vw, 2.2rem); }
+body[data-seminar="true"] .seminar-metric-grid { gap: 16px; }
+body[data-seminar="true"] .seminar-metric-grid article { padding: 22px; }
+body[data-seminar="true"] .seminar-metric-grid strong { font-size: clamp(2rem, 3.2vw, 3.2rem); }
+body[data-seminar="true"] .seminar-flow span { min-height: 44px; font-size: 0.92rem; }
 
 
 .goal-panel,
@@ -1804,6 +1852,12 @@ body[data-seminar="true"] .seminar-summary-panel {
   background: var(--navy);
 }
 
+.rank-plan-type-button.is-active {
+  color: #fff;
+  border-color: var(--brand);
+  background: var(--brand);
+}
+
 .rank-plan-summary article {
   min-height: 0;
   padding: 8px 16px;
@@ -1932,6 +1986,19 @@ body[data-seminar="true"] .seminar-summary-panel {
   border-radius: 7px;
   color: var(--ink);
   background: #fff;
+  font-weight: 800;
+}
+
+/* タイプ別売上計画の報酬タイプ表示（社員報酬タイプの枠と同じ見た目・非編集） */
+.rank-plan-pay-type {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
   font-weight: 800;
 }
 
@@ -2812,4 +2879,12 @@ td {
   .meter-row {
     grid-template-columns: 86px 1fr 74px;
   }
+}
+
+/* 経営タイプ切替（従来の不動産会社：一括査定型／属人型） */
+.management-type-select { margin: 4px 0 20px; }
+.management-type-select .eyebrow { margin-bottom: 8px; }
+#managementTypeButtons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) {
+  #managementTypeButtons { grid-template-columns: 1fr; }
 }

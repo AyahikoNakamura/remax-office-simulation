@@ -14,7 +14,7 @@
           <p class="eyebrow">RE/MAX Hokkaido</p>
           <h1><span>RE/MAX</span><span>オフィス経営</span><span>シミュレーション</span></h1>
           <p>
-            <span>目標利益、オーナー給与、ランク別採用計画を入力しながら</span><span>オフィス経営に必要な取引額をその場で見える化します。</span>
+            <span>目標利益、オーナー給与、ランク別採用計画を入力しながら</span><span>オフィス経営に必要な仲介手数料をその場で見える化します。</span>
           </p>
         </div>
       </section>
@@ -39,8 +39,8 @@
             </div>
 
             <div class="preset-row preset-row--phase" role="group" aria-label="利益フェーズ">
-              <button class="preset" data-preset="current" type="button"><strong>現在の状況</strong><small>現状確認用のページ</small></button>
-              <button class="preset is-active" data-preset="phase300" type="button"><strong>300万</strong><small>新規独立・未経験の立ち上げ</small></button>
+              <button class="preset is-active" data-preset="current" type="button"><strong>従来の不動産会社</strong><small>歩合・固定費型の収益構造（比較用）</small></button>
+              <button class="preset" data-preset="phase300" type="button"><strong>300万</strong><small>新規独立・未経験の立ち上げ</small></button>
               <button class="preset" data-preset="phase500" type="button"><strong>500万</strong><small>少人数・固定費軽めのモデル</small></button>
               <button class="preset" data-preset="phase1000" type="button"><strong>1,000万</strong><small>10名体制の成長期モデル</small></button>
               <button class="preset" data-preset="phase3000" type="button"><strong>3,000万</strong><small>採用力で伸ばす拡大期モデル</small></button>
@@ -54,57 +54,6 @@
               </label>
             </div>
 
-          </section>
-
-          <section class="seminar-summary-panel" aria-labelledby="seminarSummaryTitle">
-            <div class="seminar-summary-heading">
-              <div>
-                <p class="eyebrow">Simulation Summary</p>
-                <h2 id="seminarSummaryTitle">オフィス経営の収益構造</h2>
-              </div>
-              <strong id="seminarPhaseLabel">利益300万円</strong>
-            </div>
-
-            <div class="seminar-flow" aria-label="説明の流れ">
-              <span>1. 既存会社の収支</span>
-              <span>2. RE/MAXモデル</span>
-              <span>3. 採用計画</span>
-              <span>4. 必要取引額</span>
-            </div>
-
-            <div class="seminar-metric-grid">
-              <article class="seminar-metric seminar-metric--primary">
-                <span id="seminarPrimaryLabel">年間営業利益</span>
-                <strong id="seminarAnnualProfit">0万円</strong>
-                <small id="seminarProfitGap">目標との差額 0万円</small>
-              </article>
-              <article>
-                <span id="seminarSecondLabel">採用人数</span>
-                <strong id="seminarAgents">0名</strong>
-                <small id="seminarSecondNote">ランク別採用計画の合計</small>
-              </article>
-              <article>
-                <span id="seminarThirdLabel">Ag1人あたり必要取引額</span>
-                <strong id="seminarRequiredPerAgent">0万円</strong>
-                <small id="seminarThirdNote">目標利益から逆算</small>
-              </article>
-              <article>
-                <span id="seminarFourthLabel">5年累計利益</span>
-                <strong id="seminarCumulativeProfit">0万円</strong>
-                <small id="seminarFourthNote">年次シミュレーション</small>
-              </article>
-            </div>
-
-            <div class="seminar-talk-grid">
-              <article>
-                <span>確認ポイント</span>
-                <p id="seminarTalkPoint">目標利益、採用人数、必要取引額の関係を確認します。</p>
-              </article>
-              <article>
-                <span>収益の内訳</span>
-                <p id="seminarRevenueMix">オーナー粗利、Agフィー、Ag取引粗利を合計します。</p>
-              </article>
-            </div>
           </section>
 
           <section class="actual-panel" aria-labelledby="actualTitle">
@@ -368,6 +317,11 @@
               </div>
             </div>
 
+            <div class="management-type-select" id="managementTypeSelect" hidden>
+              <p class="eyebrow">経営タイプ（クリックで切替）</p>
+              <div class="preset-row" id="managementTypeButtons" aria-label="経営タイプ"></div>
+            </div>
+
             <div class="assumption-grid">
               <label class="field field--number">
                 <span id="ownerSalaryLabel">オーナー給与</span>
@@ -461,13 +415,13 @@
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Owner Deal</p>
-                <h2 id="ownerDealTitle">オーナーの年間取引額</h2>
+                <h2 id="ownerDealTitle">オーナーの年間仲介手数料</h2>
               </div>
             </div>
 
             <div class="owner-deal-grid owner-deal-grid--compact">
               <label class="field field--number owner-deal-field">
-                <span id="ownerTransactionLabel">オーナー年間取引額</span>
+                <span id="ownerTransactionLabel">オーナー年間仲介手数料</span>
                 <strong><output id="ownerTransactionOut">500</output> 万円</strong>
                 <input id="ownerTransaction" type="number" min="0" max="10000" step="50" value="500" inputmode="numeric" />
               </label>
@@ -494,11 +448,11 @@
                   <tr>
                     <th>ランク</th>
                     <th>採用人数</th>
-                    <th>1人あたり年間取引金額</th>
+                    <th>1人あたり年間仲介手数料</th>
                     <th>月額Agフィー</th>
                     <th>歩合率</th>
                     <th><span>1人あたりAg収入</span><small>支払Agフィー控除後</small></th>
-                    <th>取引由来オフィス粗利</th>
+                    <th>手数料由来オフィス粗利</th>
                   </tr>
                 </thead>
                 <tbody id="rankPlanRows"></tbody>
@@ -540,7 +494,7 @@
                   <article class="reverse-card">
                     <span>オーナー粗利</span>
                     <strong id="sourceOwnerRevenue">0万円</strong>
-                    <small>オーナー取引額 × 94%</small>
+                    <small>オーナー手数料 × 94%</small>
                   </article>
                   <span class="formula-operator" aria-hidden="true">+</span>
                   <article class="reverse-card">
@@ -550,7 +504,7 @@
                   </article>
                   <span class="formula-operator" aria-hidden="true">+</span>
                   <article class="reverse-card">
-                    <span>Ag取引粗利</span>
+                    <span>Ag手数料粗利</span>
                     <strong id="sourceAgentCommissionRevenue">0万円</strong>
                     <small>採用・報酬設計から計算</small>
                   </article>
@@ -559,7 +513,7 @@
             </div>
 
             <div class="source-sum-flow" aria-hidden="true">
-              <span>上の3項目を合計</span>
+              <span id="sourceSumLabel">上の3項目を合計</span>
               <b>↓</b>
             </div>
 
@@ -567,7 +521,7 @@
               <article class="kpi kpi--primary">
                 <span id="annualRevenueLabel">現在プランの年間オフィス粗利</span>
                 <strong id="annualRevenue">0万円</strong>
-                <small id="annualRevenueNote">オーナー粗利 + Agフィー年間利益 + Ag取引粗利</small>
+                <small id="annualRevenueNote">オーナー粗利 + Agフィー年間利益 + Ag手数料粗利</small>
               </article>
               <span class="formula-operator formula-operator--minus" aria-hidden="true">−</span>
               <article class="kpi">
@@ -583,6 +537,57 @@
               </article>
             </div>
 
+          </section>
+
+          <section class="seminar-summary-panel" aria-labelledby="seminarSummaryTitle">
+            <div class="seminar-summary-heading">
+              <div>
+                <p class="eyebrow">Simulation Summary</p>
+                <h2 id="seminarSummaryTitle">オフィス経営の収益構造</h2>
+              </div>
+              <strong id="seminarPhaseLabel">利益300万円</strong>
+            </div>
+
+            <div class="seminar-flow" aria-label="説明の流れ">
+              <span>1. 既存会社の収支</span>
+              <span>2. RE/MAXモデル</span>
+              <span>3. 採用計画</span>
+              <span>4. 必要手数料</span>
+            </div>
+
+            <div class="seminar-metric-grid">
+              <article class="seminar-metric seminar-metric--primary">
+                <span id="seminarPrimaryLabel">年間営業利益</span>
+                <strong id="seminarAnnualProfit">0万円</strong>
+                <small id="seminarProfitGap">目標との差額 0万円</small>
+              </article>
+              <article>
+                <span id="seminarSecondLabel">採用人数</span>
+                <strong id="seminarAgents">0名</strong>
+                <small id="seminarSecondNote">ランク別採用計画の合計</small>
+              </article>
+              <article>
+                <span id="seminarThirdLabel">Ag1人あたり必要手数料</span>
+                <strong id="seminarRequiredPerAgent">0万円</strong>
+                <small id="seminarThirdNote">目標利益から逆算</small>
+              </article>
+              <article>
+                <span id="seminarFourthLabel">5年累計利益</span>
+                <strong id="seminarCumulativeProfit">0万円</strong>
+                <small id="seminarFourthNote">年次シミュレーション</small>
+              </article>
+            </div>
+
+            <div class="seminar-talk-grid">
+              <article>
+                <span>確認ポイント</span>
+                <p id="seminarTalkPoint">目標利益、採用人数、必要手数料の関係を確認します。</p>
+              </article>
+              <article>
+                <span>収益の内訳</span>
+                <p id="seminarRevenueMix">オーナー粗利、Agフィー、Ag手数料粗利を合計します。</p>
+              </article>
+            </div>
           </section>
 
           <div class="insight-band">
@@ -610,7 +615,7 @@
                 <strong><output id="feeOut">80</output> 万円</strong>
                 <input id="fee" type="number" min="0" max="1000" step="10" value="80" inputmode="numeric" />
               </label>
-              <p>年間成約件数の換算にだけ使用します。年次表は、エージェント数が毎年3名純増、1人あたり年間取引金額が毎年7%増、固定費が毎年5.5%増える前提です。</p>
+              <p>年間成約件数の換算にだけ使用します。年次表は、エージェント数が毎年3名純増、1人あたり年間仲介手数料が毎年7%増、固定費が毎年5.5%増える前提です。</p>
             </div>
             <div class="table-wrap">
               <table>
