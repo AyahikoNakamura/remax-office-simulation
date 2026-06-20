@@ -1,9 +1,9 @@
 const presets = {
   current: { fee: 0, ownerSalary: 90, rent: 35, officeFee: 0, adCoopFee: 0, officeStaff: 25, otherExpense: 130, salesEmployeeSalary: 0, generalExpense: 70, salesRoyaltyRate: 0, ownerTransaction: 1200, targetProfit: 0 },
-  phase300: { fee: 80, ownerSalary: 30, rent: 20, officeFee: 10, adCoopFee: 3, officeStaff: 0, otherExpense: 10, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 0, ownerTransaction: 500, targetProfit: 300 },
-  phase500: { fee: 80, ownerSalary: 50, rent: 20, officeFee: 10, adCoopFee: 3, officeStaff: 0, otherExpense: 10, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 0, ownerTransaction: 0, targetProfit: 500 },
-  phase1000: { fee: 80, ownerSalary: 80, rent: 20, officeFee: 10, adCoopFee: 3, officeStaff: 30, otherExpense: 30, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 0, ownerTransaction: 500, targetProfit: 1000 },
-  phase3000: { fee: 80, ownerSalary: 100, rent: 40, officeFee: 10, adCoopFee: 3, officeStaff: 60, otherExpense: 100, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 0, ownerTransaction: 0, targetProfit: 3000 },
+  phase300: { fee: 80, ownerSalary: 30, rent: 20, officeFee: 10, adCoopFee: 3, officeStaff: 0, otherExpense: 10, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 6, ownerTransaction: 500, targetProfit: 300 },
+  phase500: { fee: 80, ownerSalary: 50, rent: 20, officeFee: 10, adCoopFee: 3, officeStaff: 0, otherExpense: 10, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 6, ownerTransaction: 0, targetProfit: 500 },
+  phase1000: { fee: 80, ownerSalary: 80, rent: 20, officeFee: 10, adCoopFee: 3, officeStaff: 30, otherExpense: 30, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 6, ownerTransaction: 500, targetProfit: 1000 },
+  phase3000: { fee: 80, ownerSalary: 100, rent: 40, officeFee: 10, adCoopFee: 3, officeStaff: 60, otherExpense: 100, salesEmployeeSalary: 0, generalExpense: 0, salesRoyaltyRate: 6, ownerTransaction: 0, targetProfit: 3000 },
 };
 
 const phasePlans = {
@@ -53,7 +53,9 @@ const phasePlans = {
     pdfPerAgent: 7130,
   },
 };
-const remaxRoyaltyRate = 6;
+// RE/MAX本部ロイヤリティ（売上対比・既定6%）。事業前提のロイヤリティ入力欄から同期され、
+// 全てのRE/MAX計算（エージェント手数料控除・本部送金・粗利計算）に反映される。
+let remaxRoyaltyRate = 6;
 const headOfficeMonthlyFeeMan = 0.8;
 const defaultAgentRanks = [
   { rank: "A", note: "宅建取引士のみ", monthlyFeeYen: 84000, licensedRate: 80, unlicensedRate: null, thresholdMan: 1500, bonusLicensedRate: 90, bonusUnlicensedRate: null },
@@ -365,6 +367,14 @@ function getValues() {
     inputs.salesEmployeeSalary.value = formatCompact(values.salesEmployeeSalary);
   }
   values.monthlyFixed = values.ownerSalary + values.rent + values.officeFee + values.adCoopFee + values.officeStaff + values.otherExpense + values.salesEmployeeSalary + values.generalExpense;
+  // RE/MAXタブでは事業前提のロイヤリティ入力欄を本部ロイヤリティ(remaxRoyaltyRate)へ同期。
+  // 従来タブは独自のロイヤリティ(values.salesRoyaltyRate)を使うため、既定6%に戻しておく。
+  if (activePreset === "current") {
+    remaxRoyaltyRate = 6;
+  } else {
+    const r = Number(values.salesRoyaltyRate);
+    remaxRoyaltyRate = Number.isFinite(r) ? Math.min(100, Math.max(0, r)) : 6;
+  }
   return values;
 }
 
@@ -429,11 +439,13 @@ function calcRankPlan(values) {
   const additionalCounts = distributeAdditionalCounts(Math.round(values.rankCountAdd || 0));
   const transactionMultiplier = values.rankTransactionMultiplier || 1;
   const rowRanks = activePreset === "current" ? currentRankCompensations : agentRanks;
+  const override = values.rankPlanOverride;   // 年次シミュの昇格モデルから渡る per-rank 上書き
   const rows = rowRanks.map((rank, index) => {
-    const plan = rankPlan[index] || { count: 0, annualTransactionMan: 0 };
+    const ov = override && override[index];
+    const plan = ov || rankPlan[index] || { count: 0, annualTransactionMan: 0 };
     const currentRank = currentRankCompensations[index] || {};
-    const count = plan.count + (additionalCounts[index] || 0);
-    const annualTransactionMan = plan.annualTransactionMan * transactionMultiplier;
+    const count = ov ? plan.count : plan.count + (additionalCounts[index] || 0);
+    const annualTransactionMan = ov ? plan.annualTransactionMan : plan.annualTransactionMan * transactionMultiplier;
     if (activePreset === "current") {
       const officeRevenue = currentCompanyProfitForRank(currentRank, count, annualTransactionMan, ownerRoyaltyRate(values));
       const grossCommission = count * annualTransactionMan;
@@ -497,12 +509,60 @@ function calc(values) {
   };
 }
 
+/*
+ * 年次シミュレーション（5年）― ランク昇格モデル
+ * ============================================================================
+ * 【設計の根拠：500/1000/3000万フェーズのランク分布を分析】
+ *   各フェーズ＝オフィスの成熟段階。
+ *     500万 :  全員C（5名）              … 草創期
+ *     1000万: A2 / B3 / C5 / D3（13名）  … 成長期（ピラミッド型）
+ *     3000万: A10/ B5 / C5 / D5（25名）  … 成熟期（A40%/B20%/C20%/D20%・A厚め）
+ *   → 成長とともに「C中心 → A厚め」へシフトする。これを昇格で再現する。
+ *
+ * 【モデル】（agentRanks順 index: 0=A,1=B,2=C,3=D）
+ *   - 採用 : 毎年 RECRUITS_PER_YEAR 名を D（契約初年度＝新人）で採用。
+ *   - 昇格 : D→C（翌年・全員）、C→B（PROMOTE_C_TO_B）、B→A（PROMOTE_B_TO_A）。
+ *            全員がAまで上がるのは非現実的なので、A は ATTRITION_A で離職。
+ *   - 生産性: 一律%増ではなく、ランク別の代表手数料 RANK_FEE_MAN を使用。
+ *            昇格すると手数料がそのランク水準へ上がる（D≈70/C≈600/B≈950/A≈1400万）。
+ *   - 1年目は現状のまま（現rankPlanの人数・手数料）。2年目以降に昇格＋採用が効く。
+ *   - 固定費は毎年 +5.5%（線形）。
+ *
+ * 【検証】1000万スタート(A2/B3/C5/D3)で回すと約4年でA10/B5/C5/D5≒3000万に到達し、
+ *         「成長期→成熟期」のフェーズ移行を自動再現する。
+ * ※ 下の定数（採用数・昇格率・離職率・ランク別手数料）はすべて調整可能。
+ * ============================================================================
+ */
+const RECRUITS_PER_YEAR = 3;          // 毎年Dで新規採用する人数
+const PROMOTE_C_TO_B = 0.6;           // C→B 年間昇格率
+const PROMOTE_B_TO_A = 0.6;           // B→A 年間昇格率
+const ATTRITION_A = 0.15;             // A 年間離職率
+const RANK_FEE_MAN = [1400, 950, 600, 70];  // A/B/C/D の代表 年間仲介手数料/人（万円）
+
 function projection(values) {
   const rows = [];
-  const annualAgentIncrease = 3;
   let cumulative = 0;
+  // 開始分布（agentRanks順: 0=A,1=B,2=C,3=D）。1年目は現状そのまま。
+  let dist = [0, 1, 2, 3].map((i) => (rankPlan[i] || {}).count || 0);
 
   for (let year = 1; year <= 5; year += 1) {
+    if (year > 1) {
+      const [a, b, c, d] = dist;
+      const cToB = c * PROMOTE_C_TO_B;
+      const bToA = b * PROMOTE_B_TO_A;
+      const aLeave = a * ATTRITION_A;
+      dist = [
+        a - aLeave + bToA,        // A：離職を引き、Bからの昇格を足す
+        b - bToA + cToB,          // B
+        c - cToB + d,             // C：前年のDは全員Cへ昇格
+        RECRUITS_PER_YEAR,        // D：新規採用
+      ];
+    }
+    // 1年目＝現状の人数・手数料／2年目以降＝昇格後の分布×ランク別代表手数料
+    const override = (year === 1)
+      ? [0, 1, 2, 3].map((i) => ({ count: dist[i], annualTransactionMan: (rankPlan[i] || {}).annualTransactionMan || RANK_FEE_MAN[i] }))
+      : dist.map((count, i) => ({ count, annualTransactionMan: RANK_FEE_MAN[i] }));
+
     const yearValues = {
       ...values,
       ownerSalary: values.ownerSalary * (1 + (year - 1) * 0.055),
@@ -514,8 +574,7 @@ function projection(values) {
       salesEmployeeSalary: values.salesEmployeeSalary * (1 + (year - 1) * 0.055),
       generalExpense: values.generalExpense * (1 + (year - 1) * 0.055),
       monthlyFixed: values.monthlyFixed * (1 + (year - 1) * 0.055),
-      rankCountAdd: annualAgentIncrease * (year - 1),
-      rankTransactionMultiplier: 1 + (year - 1) * 0.07,
+      rankPlanOverride: override,
     };
     const result = calc(yearValues);
     cumulative += result.annualProfit;
@@ -535,6 +594,7 @@ function setAssumptionFieldState() {
     adCoopFeeLabel: isCurrent ? "FC費用2" : "広告協力金",
     officeStaffLabel: isCurrent ? "事務社員給与" : "スタッフ給与",
     otherExpenseLabel: isCurrent ? "広告宣伝費" : "その他経費",
+    salesRoyaltyRateLabel: isCurrent ? "売上に対するロイヤリティ" : "RE/MAX本部ロイヤリティ",
   };
 
   Object.entries(labels).forEach(([id, text]) => {
@@ -2867,7 +2927,7 @@ function setProjection(values) {
     .map((row) => `
       <tr>
         <td>${row.year}年目</td>
-        <td>${row.result.agents}名</td>
+        <td>${Math.round(row.result.agents)}名</td>
         <td>${formatNumber(row.result.annualDeals, 1)}件</td>
         <td>${formatMan(row.result.annualRevenue)}</td>
         <td>${formatMan(row.result.annualProfit)}</td>
@@ -2905,6 +2965,8 @@ function renderSeminarSummary(values, result) {
   const operatingMargin = result.grossCommission > 0 ? result.annualProfit / result.grossCommission * 100 : 0;
 
   document.getElementById("seminarPhaseLabel").textContent = reverse.label || "利益フェーズ";
+  const summaryTitleEl = document.getElementById("seminarSummaryTitle");
+  if (summaryTitleEl) summaryTitleEl.textContent = isCurrent ? "従来の不動産会社の収益構造" : "オフィス経営の収益構造";
   document.getElementById("seminarPrimaryLabel").textContent = isCurrent ? "年間売上高" : "年間営業利益";
   document.getElementById("seminarAnnualProfit").textContent = isCurrent ? formatMan(result.grossCommission) : formatMan(result.annualProfit);
   document.getElementById("seminarProfitGap").textContent = isCurrent
@@ -2989,6 +3051,10 @@ function setReverse(values, result) {
   if (grossSourceTitle) grossSourceTitle.textContent = isCurrent ? "年間会社計上粗利の内訳" : "年間オフィス粗利の内訳";
   const sourceSumLabel = document.getElementById("sourceSumLabel");
   if (sourceSumLabel) sourceSumLabel.textContent = isCurrent ? "上の2項目を合計" : "上の3項目を合計";
+  // 年次シミュレーション表は将来の成長前提なので、従来タブでは非表示・RE/MAXフェーズでのみ表示
+  // （CSSの .table-panel { display:none } をインラインで上書き）
+  const tablePanel = document.querySelector(".table-panel");
+  if (tablePanel) tablePanel.style.display = isCurrent ? "none" : "block";
   grossSourceGrid.classList.toggle("reverse-grid--formula", !isCurrent);
   grossSourceGrid.classList.toggle("reverse-grid--current-source", isCurrent);
   grossSourceGrid.innerHTML = isCurrent ? `
@@ -3228,7 +3294,7 @@ function renderRankPlanRows() {
         <tr>
           <td><span class="rank-plan-pay-type">${currentRank.payType || rank.payType || ""}</span></td>
           <td><span class="unit-input"><input class="rank-plan-input" data-plan-index="${index}" data-field="count" type="number" min="0" step="1" value="${plan.count}" aria-label="${currentRank.rank || rank.rank} 人数" /><span>名</span></span></td>
-          <td><span class="unit-input"><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${currentRank.rank || rank.rank} 年間仲介手数料" /><span>万円</span></span></td>
+          <td><span class="unit-input"><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="10" value="${plan.annualTransactionMan}" aria-label="${currentRank.rank || rank.rank} 年間仲介手数料" /><span>万円</span></span></td>
           <td>${formatPercent(currentRank.commissionRate || 0)}</td>
           <td id="rankPlanAgentIncome-${index}">${formatMan(currentEmployeeIncome)}</td>
           <td id="rankPlanOffice-${index}">${formatMan(currentCompanyProfit)}</td>
@@ -3240,7 +3306,7 @@ function renderRankPlanRows() {
             <small>${rank.note}</small>
           </td>
           <td><span class="unit-input"><input class="rank-plan-input" data-plan-index="${index}" data-field="count" type="number" min="0" step="1" value="${plan.count}" aria-label="${rank.rank}ランク 採用人数" /><span>名</span></span></td>
-          <td><span class="unit-input"><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="1" value="${plan.annualTransactionMan}" aria-label="${rank.rank}ランク 年間仲介手数料" /><span>万円</span></span></td>
+          <td><span class="unit-input"><input class="rank-plan-input rank-plan-input--wide" data-plan-index="${index}" data-field="annualTransactionMan" type="number" min="0" step="10" value="${plan.annualTransactionMan}" aria-label="${rank.rank}ランク 年間仲介手数料" /><span>万円</span></span></td>
           <td><span class="unit-input">${rankInput(rank.monthlyFeeYen, "monthlyFeeYen", index, "")}<span>円</span></span></td>
           <td><span class="unit-input">${rankInput(rank.licensedRate, "licensedRate", index)}<span>%</span></span></td>
           <td><span class="unit-input">${rankInput(rank.thresholdMan, "thresholdMan", index)}<span>万円</span></span></td>
@@ -3344,6 +3410,7 @@ function render() {
   setReverse(values, result);
   renderSeminarSummary(values, result);
   if (actualSummaryState) setSimulationAssumptions(getActiveActualPeriod(actualSummaryState));
+  highlightPresetButtons();   // 上部フェーズタブの赤(選択中)を常に最新化
 }
 
 function applyPhaseRankPlan(name) {
@@ -3354,7 +3421,10 @@ function applyPhaseRankPlan(name) {
 }
 
 function applyQuickRankPlan() {
-  const plan = phaseQuickRankPlans[activePreset];
+  // 「利益◯◯万円」バッジのクリックで、そのフェーズの例示採用計画を一発入力。
+  // phaseQuickRankPlans に専用の例示があればそれを、無ければそのフェーズの既定採用計画を使う
+  // （phase300のみ専用例示。500/1000/3000は未定義だったため従来は無反応だった）。
+  const plan = phaseQuickRankPlans[activePreset] || phaseRankPlans[activePreset];
   if (!plan) return;
   plan.forEach((row, index) => {
     rankPlan[index] = { ...row };
@@ -3422,17 +3492,34 @@ function loadPresetState(name) {
   });
 }
 
+// 上部フェーズタブの赤(選択中)/白を、いま開いているタブ(activePreset)に合わせて更新。
+// ＝そのタブを開いている間は常に赤。リセットしても activePreset は変わらないので赤のまま。
+// 経営タイプボタン(.preset[data-management-type])は対象外にするため data-preset 限定で選択。
+function highlightPresetButtons() {
+  document.querySelectorAll(".preset-row--phase .preset").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.preset === activePreset);
+  });
+}
+
 function applyPreset(name) {
-  if (!presets[name] || name === activePreset) return;
-  savePresetState(activePreset);
-  activePreset = name;
-  loadPresetState(name);
+  if (!presets[name]) return;
+  // 「従来」タブの再クリックは何もしない（作り込みを保持）。フェーズタブは毎回例示を再読込。
+  if (name === activePreset && name === "current") return;
+  if (name !== activePreset) {
+    savePresetState(activePreset);   // 現タブの状態を保存（特に従来タブの作り込みを保持）
+    activePreset = name;
+  }
+  if (name === "current") {
+    loadPresetState(name);           // 従来タブは保存済み状態を復元
+  } else {
+    // フェーズタブはクリックのたびに「例示（初期値）」を読み込む。
+    // リセットで0にした後に同じタブを押すと、例示が復活する。
+    presetStates[name] = createInitialPresetState(name);
+    loadPresetState(name);
+  }
   renderRankRows();
   renderRankPlanRows();
-  document.querySelectorAll(".preset").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.preset === name);
-  });
-  render();
+  render();   // render内で highlightPresetButtons を呼びタブの赤を最新化
 }
 
 function resetAll() {
@@ -3444,12 +3531,9 @@ function resetAll() {
     render();
     return;
   }
-  presetStates[activePreset] = createInitialPresetState(activePreset);
-  loadPresetState(activePreset);
-  document.querySelectorAll(".preset").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.preset === activePreset);
-  });
-  renderRankRows();
+  // RE/MAXフェーズタブ(300/500/1000/3000)：採用計画(rankPlan＝人数・手数料)を全て0に。
+  // 事業前提・報酬設定はそのまま。タブの選択色(赤)はそのまま維持する。
+  rankPlan.forEach((_, i) => { rankPlan[i] = { count: 0, annualTransactionMan: 0 }; });
   renderRankPlanRows();
   render();
 }
