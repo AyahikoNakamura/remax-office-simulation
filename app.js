@@ -3502,21 +3502,13 @@ function highlightPresetButtons() {
 }
 
 function applyPreset(name) {
-  if (!presets[name]) return;
-  // 「従来」タブの再クリックは何もしない（作り込みを保持）。フェーズタブは毎回例示を再読込。
-  if (name === activePreset && name === "current") return;
-  if (name !== activePreset) {
-    savePresetState(activePreset);   // 現タブの状態を保存（特に従来タブの作り込みを保持）
-    activePreset = name;
-  }
-  if (name === "current") {
-    loadPresetState(name);           // 従来タブは保存済み状態を復元
-  } else {
-    // フェーズタブはクリックのたびに「例示（初期値）」を読み込む。
-    // リセットで0にした後に同じタブを押すと、例示が復活する。
-    presetStates[name] = createInitialPresetState(name);
-    loadPresetState(name);
-  }
+  if (!presets[name] || name === activePreset) return;   // 同じタブの再クリックは何もしない
+  // タブ切替＝「保持」: 現タブの入力(人数・金額・報酬設定)を保存し、切替先タブの保存値を復元する。
+  // これにより、タブを行き来しても入力した値がデフォルトに戻らない（初回だけ既定の例示を表示）。
+  // 例示に戻したいときは各タブの「利益◯◯万円」ボタン（applyQuickRankPlan）を使う。
+  savePresetState(activePreset);
+  activePreset = name;
+  loadPresetState(name);
   renderRankRows();
   renderRankPlanRows();
   render();   // render内で highlightPresetButtons を呼びタブの赤を最新化
