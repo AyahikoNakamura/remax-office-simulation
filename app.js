@@ -1660,6 +1660,111 @@ function loadActualCsv(file) {
   reader.readAsText(file, "utf-8");
 }
 
+function buildPolarisExport() {
+  const agents = readRegisteredAgents().filter((a) => !a.canceledAt);
+  const rows = readActualSalesRows();
+  const byMonth = {};
+  rows.forEach((r) => {
+    const m = r.reportMonth && r.reportMonth.key;
+    if (!m) return;
+    if (!byMonth[m]) byMonth[m] = { payment: 0, gross: 0 };
+    byMonth[m].payment += Number(r.paymentAmount) || 0;
+    byMonth[m].gross += Number(r.officeGrossProfit) || 0;
+  });
+  const allAgents = readRegisteredAgents();
+  // 月レンジは「売上データのある期間（最初の売上月〜最後の売上月）」に限定する。
+  // 範囲内の欠測月は0埋め（売上0でも在籍Ag数/フィーは計上）。
+  // ※エージェントの契約日まで遡らない（売上データの無い過去年が生成されるのを防ぐ）。
+  const salesKeys = Object.keys(byMonth).sort();
+  let rangeMonths = [];
+  if (salesKeys.length) {
+    const first = salesKeys[0].split("-").map(Number);
+    const last = salesKeys[salesKeys.length - 1].split("-").map(Number);
+    rangeMonths = monthRange(
+      { key: salesKeys[0], year: first[0], month: first[1] },
+      { key: salesKeys[salesKeys.length - 1], year: last[0], month: last[1] }
+    );
+  }
+  const monthly = rangeMonths.map((mo) => {
+    const b = byMonth[mo.key] || { payment: 0, gross: 0 };
+    return {
+      month: mo.key,
+      payment_yen: Math.round(b.payment),
+      gross_yen: Math.round(b.gross),
+      payment_man: Math.round(b.payment / 10000),
+      office_gross_profit_man: Math.round(b.gross / 10000),
+    };
+  });
+  const monthlyAgents = rangeMonths.map((mo) => {
+    let count = 0;
+    let fee = 0;
+    allAgents.forEach((a) => {
+      if (isAgentActiveInMonth(a, mo.year, mo.month)) {
+        count += 1;
+        fee += getAgentFeeForMonth(a, mo.year, mo.month) || 0;
+      }
+    });
+    return { month: mo.key, agent_count: count, fee_yen: Math.round(fee), fee_income_man: Math.round(fee / 10000) };
+  });
+  const agentMeta = {};
+  allAgents.forEach((a) => {
+    agentMeta[normalizeAgentName(a.name)] = { rank: a.rank, license: a.license, name: a.name };
+  });
+  const contribMap = {};
+  rows.forEach((r) => {
+    const key = normalizeAgentName(r.agentName || "未設定");
+    if (!contribMap[key]) contribMap[key] = { key, name: r.agentName || "未設定", payment: 0, gross: 0, deals: 0 };
+    contribMap[key].payment += Number(r.paymentAmount) || 0;
+    contribMap[key].gross += Number(r.officeGrossProfit) || 0;
+    contribMap[key].deals += 1;
+  });
+  const agentContributions = Object.values(contribMap)
+    .map((c) => {
+      const meta = agentMeta[c.key] || {};
+      return {
+        name: meta.name || c.name,
+        rank: meta.rank || "",
+        license: meta.license || "",
+        payment_man: Math.round(c.payment / 10000),
+        gross_man: Math.round(c.gross / 10000),
+        deals: c.deals,
+      };
+    })
+    .sort((a, b) => b.payment_man - a.payment_man);
+
+  const latest = monthly.length ? monthly[monthly.length - 1] : null;
+  return {
+    exported_at: new Date().toISOString(),
+    office_name: "RE/MAX KYOUEI",
+    summary: {
+      agent_count: agents.length,
+      latest_month: latest ? latest.month : null,
+      latest_month_payment_man: latest ? latest.payment_man : 0,
+      latest_month_gross_profit_man: latest ? latest.office_gross_profit_man : 0,
+    },
+    monthly_sales: monthly,
+    monthly_agents: monthlyAgents,
+    agent_contributions: agentContributions,
+    agents: agents.map((a) => ({ name: a.name, rank: a.rank, license: a.license })),
+  };
+}
+
+function exportForPolaris() {
+  const data = buildPolarisExport();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "office_actuals.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  renderActualCsvImportStatus(
+    `POLARIS用に ${data.monthly_sales.length}ヶ月・${data.summary.agent_count}名 をエクスポートしました（office_actuals.json）。`
+  );
+}
+
 function clearActualSalesRows() {
   if (!actualSalesRows.length) return;
   if (!confirm("読み込み済みの売上CSVデータをすべて削除しますか？")) return;
@@ -3606,6 +3711,7 @@ document.getElementById("rankPlanRows").addEventListener("focusout", (event) => 
 });
 document.getElementById("actualCsvInput").addEventListener("change", (event) => loadActualCsv(event.target.files[0]));
 document.getElementById("actualCsvClearButton").addEventListener("click", clearActualSalesRows);
+document.getElementById("exportPolarisButton").addEventListener("click", exportForPolaris);
 document.getElementById("actualPeriods").addEventListener("click", (event) => updateActualPeriod(event.target));
 document.getElementById("expenseCsvInput").addEventListener("change", (event) => loadExpenseCsv(event.target.files[0]));
 document.getElementById("agentRegisterForm").addEventListener("submit", addRegisteredAgent);
