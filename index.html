@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RE/MAX オフィス経営シミュレーション</title>
+    <title>COMPASS | RE/MAX オフィス経営シミュレーション</title>
     <!-- styles.css も app.js 同様、毎回キャッシュ無効化（編集が即反映されるように） -->
     <script>document.write('<link rel="stylesheet" href="styles.css?v=' + Date.now() + '">');</script>
   </head>
@@ -13,7 +13,8 @@
         <div class="hero__media" aria-hidden="true"></div>
         <div class="hero__content">
           <p class="eyebrow">RE/MAX Hokkaido</p>
-          <h1><span>RE/MAX</span><span>オフィス経営</span><span>シミュレーション</span></h1>
+          <h1>COMPASS</h1>
+          <p class="hero__tagline">RE/MAX オフィス経営シミュレーション</p>
           <p>
             <span>目標利益、オーナー給与、ランク別採用計画を入力しながら</span><span>オフィス経営に必要な仲介手数料をその場で見える化します。</span>
           </p>
@@ -93,7 +94,7 @@
                     売上CSVを選択
                   </label>
                   <button class="secondary-file-button" id="actualCsvClearButton" type="button">読込データをクリア</button>
-                  <button class="secondary-file-button" id="exportPolarisButton" type="button">📤 POLARIS用にエクスポート</button>
+                  <button class="secondary-file-button" id="exportPolarisButton" type="button">📤 POLARISへ書き出し（自動連携）</button>
                 </article>
               </div>
               <div class="csv-import-status" id="actualCsvImportStatus"></div>
@@ -105,6 +106,7 @@
             </div>
 
             <div class="actual-loaded" id="actualLoaded" hidden>
+              <div class="actual-offices" id="actualOfficeFilter" role="group" aria-label="オフィス選択"></div>
               <div class="actual-periods" id="actualPeriods" role="group" aria-label="実績表示期間"></div>
 
               <section class="analysis-section" aria-labelledby="dashboardTitle">
@@ -117,6 +119,8 @@
                 <div class="actual-summary" id="actualSummary"></div>
                 <div class="insight-note" id="dashboardSummary"></div>
               </section>
+
+              <section class="analysis-section" id="officeComparison" hidden></section>
 
               <section class="analysis-section" aria-labelledby="salesAnnualTitle">
                 <div class="section-title">

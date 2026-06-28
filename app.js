@@ -175,6 +175,9 @@ const registeredAgentsStorageKey = "remaxRegisteredAgents";
 const headOfficePaymentStorageKey = "remaxHeadOfficePaymentSettings";
 const seminarModeStorageKey = "remaxSeminarMode";
 let actualSalesRows = [];
+const ALL_OFFICES = "__ALL__";
+const selfOfficeStorageKey = "remaxSelfOfficeName";
+let selectedOfficeName = "";  // "" = 未選択（既定で自社）。ALL_OFFICES = 全社
 let registeredAgents = [];
 let headOfficePaymentSettings = null;
 let accountingPdfState = {
@@ -949,6 +952,61 @@ function buildActualPeriod(key, label, rows, months, note = "") {
   };
 }
 
+function distinctOffices() {
+  return Array.from(new Set(actualSalesRows.map((row) => String(row.officeName || "").trim()).filter(Boolean)))
+    .sort((a, b) => a.localeCompare(b, "ja"));
+}
+
+function readSelfOfficeName() {
+  return localStorage.getItem(selfOfficeStorageKey) || "";
+}
+
+function defaultSelfOffice() {
+  const offices = distinctOffices();
+  const saved = readSelfOfficeName();
+  if (saved && offices.includes(saved)) return saved;
+  return offices.find((o) => /KYOUEI|協栄|杏栄|きょうえい/i.test(o)) || offices[0] || "";
+}
+
+function activeOfficeName() {
+  if (selectedOfficeName === ALL_OFFICES) return ALL_OFFICES;
+  return selectedOfficeName || defaultSelfOffice();
+}
+
+function activeOfficeRows() {
+  const name = activeOfficeName();
+  if (!name || name === ALL_OFFICES) return actualSalesRows;
+  return actualSalesRows.filter((row) => String(row.officeName || "").trim() === name);
+}
+
+function setOfficeFilter() {
+  const container = document.getElementById("actualOfficeFilter");
+  if (!container) return;
+  const offices = distinctOffices();
+  if (offices.length <= 1) {  // 1社のみなら選択UIは出さない
+    container.innerHTML = "";
+    return;
+  }
+  const self = defaultSelfOffice();
+  const current = activeOfficeName();
+  const options = [...offices, ALL_OFFICES];
+  container.innerHTML = options
+    .map((o) => {
+      const label = o === ALL_OFFICES ? "全社（比較）" : escapeHtml(o) + (o === self ? "（自社）" : "");
+      const active = o === current ? "is-active" : "";
+      return `<button class="period-button ${active}" data-office="${escapeHtml(o)}" type="button">${label}</button>`;
+    })
+    .join("");
+}
+
+function refreshActuals() {
+  const offices = distinctOffices();
+  if (selectedOfficeName && selectedOfficeName !== ALL_OFFICES && !offices.includes(selectedOfficeName)) {
+    selectedOfficeName = "";  // 取込で消えたオフィスを選んでいたら自社に戻す
+  }
+  renderActuals(summarizeActuals(activeOfficeRows()));
+}
+
 function summarizeActuals(actualRows) {
   const datedRows = actualRows.filter((row) => row.reportMonth);
   const monthKeys = datedRows.map((row) => row.reportMonth.key).sort();
@@ -1627,6 +1685,117 @@ function renderManagementSummary() {
   `;
 }
 
+function activePeriodRows() {
+  const rows = actualSalesRows.filter((row) => row.reportMonth);
+  const key = activeActualPeriodKey;
+  if (!key || key === "total") return rows;
+  if (/^20\d{2}$/.test(key)) {
+    const year = Number(key);
+    return rows.filter((row) => row.reportMonth.year === year);
+  }
+  if (key === "last12" && actualSummaryState && actualSummaryState.lastMonth) {
+    const last = actualSummaryState.lastMonth;
+    const start = addMonths(last, -11);
+    return rows.filter((row) => row.reportMonth.key >= start.key && row.reportMonth.key <= last.key);
+  }
+  return rows;
+}
+
+function renderOfficeComparison() {
+  const section = document.getElementById("officeComparison");
+  if (!section) return;
+  const offices = distinctOffices();
+  if (activeOfficeName() !== ALL_OFFICES || offices.length <= 1) {
+    section.hidden = true;
+    section.innerHTML = "";
+    return;
+  }
+  section.hidden = false;
+  const self = defaultSelfOffice();
+  const periodLabel = getActiveActualPeriod(actualSummaryState)?.label || "全期間";
+  const rows = activePeriodRows();
+  const stats = offices
+    .map((office) => {
+      const rs = rows.filter((row) => String(row.officeName || "").trim() === office);
+      const payment = rs.reduce((sum, row) => sum + row.paymentAmount, 0);
+      const gross = rs.reduce((sum, row) => sum + row.officeGrossProfit, 0);
+      const share = rs.reduce((sum, row) => sum + row.officeShare, 0);
+      const agents = new Set(rs.filter((row) => row.paymentAmount > 0).map((row) => row.agentName)).size;
+      return {
+        office,
+        payment,
+        gross,
+        share,
+        count: rs.length,
+        agents,
+        margin: payment ? (gross / payment) * 100 : 0,
+        perAgent: agents ? payment / agents : 0,
+        isSelf: office === self,
+      };
+    })
+    .sort((a, b) => b.payment - a.payment);
+
+  const totals = stats.reduce(
+    (acc, s) => {
+      acc.payment += s.payment;
+      acc.gross += s.gross;
+      acc.share += s.share;
+      acc.count += s.count;
+      acc.agents += s.agents;
+      return acc;
+    },
+    { payment: 0, gross: 0, share: 0, count: 0, agents: 0 },
+  );
+
+  const bodyRows = stats
+    .map(
+      (s, i) => `
+      <tr class="${s.isSelf ? "comparison-self" : ""}">
+        <td>${i + 1}. ${escapeHtml(s.office)}${s.isSelf ? ' <span class="comparison-badge">自社</span>' : ""}</td>
+        <td>${formatYenCompact(s.payment)}</td>
+        <td>${formatYenCompact(s.gross)}</td>
+        <td>${s.margin.toFixed(1)}%</td>
+        <td>${formatYenCompact(s.share)}</td>
+        <td>${s.count.toLocaleString("ja-JP")}件</td>
+        <td>${s.agents.toLocaleString("ja-JP")}名</td>
+        <td>${formatYenCompact(s.perAgent)}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const totalRow = `
+      <tr class="comparison-total">
+        <td>全社合計</td>
+        <td>${formatYenCompact(totals.payment)}</td>
+        <td>${formatYenCompact(totals.gross)}</td>
+        <td>${totals.payment ? (totals.gross / totals.payment * 100).toFixed(1) : "0.0"}%</td>
+        <td>${formatYenCompact(totals.share)}</td>
+        <td>${totals.count.toLocaleString("ja-JP")}件</td>
+        <td>${totals.agents.toLocaleString("ja-JP")}名</td>
+        <td>-</td>
+      </tr>`;
+
+  section.innerHTML = `
+    <div class="section-title">
+      <div>
+        <p class="eyebrow">Comparison</p>
+        <h3>🏢 オフィス比較（${escapeHtml(periodLabel)}）</h3>
+      </div>
+      <span>売上CSVを取込んだ全オフィスを横並びで比較します（売上の多い順）</span>
+    </div>
+    <div class="table-wrap">
+      <table class="actual-table comparison-table">
+        <thead>
+          <tr>
+            <th>オフィス</th><th>売上</th><th>オフィス粗利</th><th>粗利率</th>
+            <th>オフィス取り分</th><th>件数</th><th>稼働AG</th><th>1AG売上</th>
+          </tr>
+        </thead>
+        <tbody>${bodyRows}${totalRow}</tbody>
+      </table>
+    </div>`;
+}
+
 function renderActuals(summary) {
   actualSummaryState = summary;
   const yearPeriods = summary.periods.filter((period) => /^20\d{2}$/.test(period.key));
@@ -1636,10 +1805,12 @@ function renderActuals(summary) {
   const period = getActiveActualPeriod(summary);
   document.getElementById("actualEmpty").hidden = true;
   document.getElementById("actualLoaded").hidden = false;
+  setOfficeFilter();
   setActualPeriods(summary);
   setActualSummary(period);
   setDashboardSummary(period);
   renderActualAnnualSalesTable(period);
+  renderOfficeComparison();
 }
 
 function loadActualCsv(file) {
@@ -1653,7 +1824,7 @@ function loadActualCsv(file) {
       return;
     }
     const result = mergeActualSalesRows(actualRows);
-    renderActuals(summarizeActuals(actualSalesRows));
+    refreshActuals();
     renderActualCsvImportStatus(`${file.name} を追加しました。新規 ${result.added.toLocaleString("ja-JP")}件 / 更新 ${result.updated.toLocaleString("ja-JP")}件`);
     document.getElementById("actualCsvInput").value = "";
   });
@@ -1662,7 +1833,9 @@ function loadActualCsv(file) {
 
 function buildPolarisExport() {
   const agents = readRegisteredAgents().filter((a) => !a.canceledAt);
-  const rows = readActualSalesRows();
+  const selfOffice = defaultSelfOffice();
+  // office_actuals は自社オフィスのみ（複数オフィスのCSVが入っていても自社分だけ深掘り集計）
+  const rows = readActualSalesRows().filter((r) => !selfOffice || String(r.officeName || "").trim() === selfOffice);
   const byMonth = {};
   rows.forEach((r) => {
     const m = r.reportMonth && r.reportMonth.key;
@@ -1749,20 +1922,143 @@ function buildPolarisExport() {
   };
 }
 
-function exportForPolaris() {
-  const data = buildPolarisExport();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+// リージョン用: 全オフィス×月の集計（POLARIS office_reports.py が期待する形式）
+function buildRegionMonthlyReports(isoNow) {
+  const rows = readActualSalesRows();
+  const store = {};
+  rows.forEach((r) => {
+    const office = String(r.officeName || "").trim();
+    const month = r.reportMonth && r.reportMonth.key;
+    if (!office || !month) return;
+    if (!store[office]) store[office] = {};
+    if (!store[office][month]) {
+      store[office][month] = { month, brokerage_total: 0, deal_count: 0, _agents: new Set(), sale_total: 0, rent_total: 0 };
+    }
+    const m = store[office][month];
+    const amt = Number(r.paymentAmount) || 0;
+    m.brokerage_total += amt;  // 入金額の合計 = 仲介手数料総額（ブローカーフィーのベース）
+    m.deal_count += 1;
+    if (amt > 0 && r.agentName) m._agents.add(r.agentName);
+    if (r.tradeCategory === "売買") m.sale_total += amt;
+    else if (r.tradeCategory === "賃貸") m.rent_total += amt;
+  });
+  const result = {};
+  Object.keys(store).forEach((office) => {
+    const months = Object.values(store[office])
+      .map((m) => ({
+        month: m.month,
+        brokerage_total: Math.round(m.brokerage_total),
+        deal_count: m.deal_count,
+        active_agents: m._agents.size,
+        sale_total: Math.round(m.sale_total),
+        rent_total: Math.round(m.rent_total),
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+    result[office] = { imported_at: isoNow, source: "remax-office-simulation (REMAX Works CSV)", monthly: months };
+  });
+  return result;
+}
+
+// ── File System Access API: POLARIS の src/data/ へ直接書込み ──
+const POLARIS_IDB = { db: "remaxSimPolaris", store: "handles", key: "polarisDataDir" };
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(POLARIS_IDB.db, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(POLARIS_IDB.store);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbGetHandle() {
+  try {
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const r = db.transaction(POLARIS_IDB.store, "readonly").objectStore(POLARIS_IDB.store).get(POLARIS_IDB.key);
+      r.onsuccess = () => resolve(r.result || null);
+      r.onerror = () => reject(r.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function idbSetHandle(handle) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(POLARIS_IDB.store, "readwrite");
+    tx.objectStore(POLARIS_IDB.store).put(handle, POLARIS_IDB.key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function ensurePermission(handle, mode = "readwrite") {
+  if (!handle) return false;
+  const opts = { mode };
+  if ((await handle.queryPermission(opts)) === "granted") return true;
+  return (await handle.requestPermission(opts)) === "granted";
+}
+
+async function getPolarisDir({ forcePick = false } = {}) {
+  if (!window.showDirectoryPicker) return null;  // FS Access API 非対応ブラウザ
+  if (!forcePick) {
+    const saved = await idbGetHandle();
+    if (saved && (await ensurePermission(saved))) return saved;
+  }
+  const handle = await window.showDirectoryPicker({ id: "polaris-data", mode: "readwrite" });
+  await idbSetHandle(handle);
+  await ensurePermission(handle);
+  return handle;
+}
+
+async function writeJsonToDir(dir, name, obj) {
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w = await fh.createWritable();
+  await w.write(JSON.stringify(obj, null, 2));
+  await w.close();
+}
+
+function downloadJson(name, obj) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "office_actuals.json";
+  a.download = name;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  renderActualCsvImportStatus(
-    `POLARIS用に ${data.monthly_sales.length}ヶ月・${data.summary.agent_count}名 をエクスポートしました（office_actuals.json）。`
-  );
+}
+
+async function exportForPolaris() {
+  const isoNow = new Date().toISOString();
+  const actuals = buildPolarisExport();
+  const reports = buildRegionMonthlyReports(isoNow);
+  const officeCount = Object.keys(reports).length;
+  try {
+    const dir = await getPolarisDir();
+    if (dir) {
+      await writeJsonToDir(dir, "office_actuals.json", actuals);
+      await writeJsonToDir(dir, "office_monthly_reports.json", reports);
+      renderActualCsvImportStatus(
+        `✅ POLARIS の src/data/ へ自動書込みしました（自社 ${actuals.monthly_sales.length}ヶ月 ／ 全${officeCount}オフィスのリージョン用データ）。POLARISを再読込すると反映されます。`
+      );
+      return;
+    }
+    renderActualCsvImportStatus("このブラウザは自動書込み(File System Access API)に未対応のため、ダウンロードします。");
+  } catch (err) {
+    if (err && err.name === "AbortError") {
+      renderActualCsvImportStatus("フォルダ選択をキャンセルしました。");
+      return;
+    }
+    console.warn("FS Access 書込みに失敗。ダウンロードにフォールバックします。", err);
+    renderActualCsvImportStatus(`自動書込みに失敗したためダウンロードします（${escapeHtml(String((err && err.message) || err))}）。`);
+  }
+  // フォールバック: 2ファイルをダウンロード
+  downloadJson("office_actuals.json", actuals);
+  downloadJson("office_monthly_reports.json", reports);
 }
 
 function clearActualSalesRows() {
@@ -3713,6 +4009,12 @@ document.getElementById("actualCsvInput").addEventListener("change", (event) => 
 document.getElementById("actualCsvClearButton").addEventListener("click", clearActualSalesRows);
 document.getElementById("exportPolarisButton").addEventListener("click", exportForPolaris);
 document.getElementById("actualPeriods").addEventListener("click", (event) => updateActualPeriod(event.target));
+document.getElementById("actualOfficeFilter").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-office]");
+  if (!button) return;
+  selectedOfficeName = button.dataset.office;  // 閲覧切替のみ（自社判定は別管理）
+  refreshActuals();
+});
 document.getElementById("expenseCsvInput").addEventListener("change", (event) => loadExpenseCsv(event.target.files[0]));
 document.getElementById("agentRegisterForm").addEventListener("submit", addRegisteredAgent);
 document.getElementById("agentRankInput").addEventListener("change", syncAgentCommissionInput);
@@ -3779,7 +4081,7 @@ document.getElementById("managementTypeButtons").addEventListener("click", (even
 
 actualSalesRows = readActualSalesRows();
 if (actualSalesRows.length) {
-  renderActuals(summarizeActuals(actualSalesRows));
+  refreshActuals();
 }
 renderActualCsvImportStatus();
 registeredAgents = readRegisteredAgents();
