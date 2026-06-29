@@ -526,23 +526,6 @@ body[data-view="agents"] .results > :not(.agent-register-panel) {
   white-space: nowrap;
 }
 
-.seminar-flow {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-/* ページ上部に置く「説明の流れ」カード */
-.seminar-flow-card {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 18px 22px;
-}
-.seminar-flow-card .eyebrow { margin-bottom: 12px; }
-.seminar-flow-card .seminar-flow { margin-bottom: 0; }
-
 /* 利益フェーズの追従（スティッキー）タブバー：どこにスクロールしても切替可能 */
 .phase-sticky-bar {
   position: sticky;
@@ -559,18 +542,6 @@ body[data-view="agents"] .results > :not(.agent-register-panel) {
 .phase-sticky-bar .preset { min-height: 0; padding: 9px 10px; }
 .phase-sticky-bar .preset small { display: none; }
 
-.seminar-flow span {
-  display: flex;
-  align-items: center;
-  min-height: 38px;
-  padding: 0 12px;
-  border: 1px solid #dbe4ef;
-  border-radius: 8px;
-  color: #526077;
-  background: rgba(248, 250, 252, 0.92);
-  font-size: 0.86rem;
-  font-weight: 900;
-}
 
 .seminar-metric-grid {
   display: grid;
@@ -662,7 +633,7 @@ body[data-seminar="true"] .hero {
 }
 body[data-seminar="true"] .hero__media { display: none; }
 body[data-seminar="true"] .hero__content {
-  width: min(1180px, calc(100% - 56px));
+  width: min(1880px, calc(100% - 40px));
   padding: 30px 0 22px 22px;
   border-left: 7px solid #cb0321;
 }
@@ -687,15 +658,115 @@ body[data-seminar="true"] .hero p:not(.eyebrow) {
 }
 body[data-seminar="true"] .hero p:not(.eyebrow) span { display: inline; }
 /* 白ヘッダーになったので、本文がヒーローへ食い込む負マージンを解除 */
-body[data-seminar="true"] .workspace { margin-top: 16px; }
-/* スライド感：主要数字・見出しを大きく、余白を広げる */
-body[data-seminar="true"] .seminar-summary-panel { padding: 30px 30px 26px; }
-body[data-seminar="true"] .seminar-summary-heading h2 { font-size: clamp(1.6rem, 2.4vw, 2.2rem); }
-body[data-seminar="true"] .seminar-metric-grid { gap: 16px; }
-body[data-seminar="true"] .seminar-metric-grid article { padding: 22px; }
-body[data-seminar="true"] .seminar-metric-grid strong { font-size: clamp(1.3rem, 1.8vw, 2.1rem); white-space: nowrap; }
-body[data-seminar="true"] .seminar-flow span { min-height: 44px; font-size: 0.92rem; }
+/* ① プロジェクター投影：本文も画面いっぱいに広げて余白の無駄をなくす */
+body[data-seminar="true"] .workspace {
+  width: min(1880px, calc(100% - 40px));
+  margin-top: 16px;
+}
 
+/* ② セミナー表示“全体”を一律拡大する。
+   ルート(html)のフォントサイズを底上げすることで、rem 指定の文字・数字が
+   サマリーだけでなく入力欄・採用計画の表・各種数値まで丸ごと大きくなる。
+   レイアウト幅は px / min() 固定なので横スクロールは発生せず、縦に伸びるだけ。
+   :has() で「セミナー表示中の body を含む html」だけに適用（通常表示は 16px のまま）。 */
+html { font-size: 16px; }
+/* --seminar-font は発表者の倍率調整(④)で上書きされる。未設定時は既定21px。 */
+html:has(body[data-seminar="true"]) { font-size: var(--seminar-font, 21px); }
+
+/* 大きくなった分、数字が桁あふれで切れないよう折り返しを許可（投影では2行でも可読） */
+body[data-seminar="true"] .seminar-metric-grid strong,
+body[data-seminar="true"] .seminar-summary-heading strong { white-space: normal; }
+
+/* スライドらしい余白・見出し強調 */
+body[data-seminar="true"] .seminar-summary-panel { padding: 36px 40px 32px; }
+body[data-seminar="true"] .seminar-summary-heading { margin-bottom: 22px; }
+body[data-seminar="true"] .seminar-summary-heading h2 { font-size: clamp(2rem, 2.8vw, 3rem); }
+body[data-seminar="true"] .seminar-metric-grid { gap: 16px; }
+body[data-seminar="true"] .seminar-metric-grid article { padding: 24px 22px; }
+body[data-seminar="true"] .seminar-talk-grid { gap: 16px; margin-top: 16px; }
+body[data-seminar="true"] .seminar-talk-grid article { padding: 22px 24px; }
+
+/* サマリーの主要数字は“見出し”として全体スケールよりさらに大きく。
+   折り返し許可済みなので桁数が増えても切れない。 */
+body[data-seminar="true"] .seminar-metric-grid strong {
+  margin: 12px 0 8px;
+  font-size: clamp(2rem, 2.7vw, 2.6rem);
+}
+body[data-seminar="true"] .seminar-metric--primary strong { font-size: clamp(2.6rem, 4vw, 4rem); }
+
+/* セミナー表示で文字を拡大すると、表の入力ボックスは固定px幅のままだと
+   「84,000円」等の桁数が箱からあふれて欠ける。幅を em（文字連動）に切り替え、
+   倍率を上げても箱が一緒に広がって数字が常に収まるようにする。
+   表自体も内容幅まで広がるようにし、収まらない時だけ .table-wrap が横スクロール。 */
+body[data-seminar="true"] .rank-plan-table,
+body[data-seminar="true"] .rank-table {
+  width: max-content;
+  min-width: 100%;
+}
+body[data-seminar="true"] .rank-plan-table .rank-input,
+body[data-seminar="true"] .rank-plan-table .rank-plan-input,
+body[data-seminar="true"] .rank-plan-table .unit-input .rank-input,
+body[data-seminar="true"] .rank-plan-table .unit-input .rank-plan-input { width: 6.6em; }
+body[data-seminar="true"] .rank-plan-table .unit-input .rank-plan-input--wide,
+body[data-seminar="true"] .rank-plan-table .rank-plan-input--wide { width: 8em; }
+body[data-seminar="true"] .rank-plan-table .rank-name-input { width: 5em; }
+body[data-seminar="true"] .rank-table .rank-input,
+body[data-seminar="true"] .rank-table--current .rank-input { width: 7em; }
+body[data-seminar="true"] .rank-table .rank-name-input { width: 5em; }
+
+/* ④ 発表者用の文字サイズ調整パネル：セミナー表示中だけ右下に固定表示。
+   px 指定でルート拡大(--seminar-font)の影響を受けず、常に同じ大きさで操作しやすい。 */
+.seminar-zoom {
+  display: none;
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(6px);
+}
+body[data-seminar="true"] .seminar-zoom { display: inline-flex; }
+.seminar-zoom__title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+  padding-left: 4px;
+}
+.seminar-zoom__btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.seminar-zoom__btn:hover { background: var(--soft); }
+.seminar-zoom__btn:active { transform: translateY(1px); }
+.seminar-zoom__btn:disabled { opacity: 0.4; cursor: default; }
+.seminar-zoom__level {
+  min-width: 58px;
+  height: 38px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--navy);
+  font-size: 16px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.seminar-zoom__level:hover { background: var(--soft); }
 
 .goal-panel,
 .assumption-panel,
@@ -2839,7 +2910,6 @@ td {
   .insight-band,
   .seminar-metric-grid,
   .seminar-talk-grid,
-  .seminar-flow,
   .import-grid,
   .metric-grid,
   .analysis-columns,
@@ -2912,7 +2982,6 @@ td {
   .insight-band,
   .seminar-metric-grid,
   .seminar-talk-grid,
-  .seminar-flow,
   .import-grid,
   .metric-grid,
   .analysis-columns,

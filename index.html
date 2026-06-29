@@ -32,16 +32,6 @@
         </div>
 
         <section class="results" aria-label="シミュレーション結果">
-          <section class="seminar-flow-card" aria-label="説明の流れ">
-            <p class="eyebrow">説明の流れ</p>
-            <div class="seminar-flow">
-              <span>1. 既存会社の収支</span>
-              <span>2. RE/MAXモデル</span>
-              <span>3. 採用計画</span>
-              <span>4. 必要手数料</span>
-            </div>
-          </section>
-
           <div class="phase-sticky-bar">
             <div class="preset-row preset-row--phase" role="group" aria-label="利益フェーズ">
               <button class="preset is-active" data-preset="current" type="button"><strong>従来の不動産会社</strong><small>歩合・固定費型の収益構造（比較用）</small></button>
@@ -647,6 +637,14 @@
         </section>
       </section>
     </main>
+
+    <!-- ④ セミナー表示中のみ表示：発表者が会場・投影機に合わせて文字サイズを現場調整 -->
+    <div class="seminar-zoom" role="group" aria-label="文字サイズ調整">
+      <span class="seminar-zoom__title">文字サイズ</span>
+      <button class="seminar-zoom__btn" id="seminarZoomDown" type="button" aria-label="文字を小さく">−</button>
+      <button class="seminar-zoom__level" id="seminarZoomLevel" type="button" title="クリックで標準(100%)に戻す">100%</button>
+      <button class="seminar-zoom__btn" id="seminarZoomUp" type="button" aria-label="文字を大きく">＋</button>
+    </div>
 
     <!-- ローカル/セミナー運用中はブラウザのキャッシュで旧コードを掴まないよう、
          読み込みのたびに app.js をキャッシュ無効化（毎回最新を取得）。 -->

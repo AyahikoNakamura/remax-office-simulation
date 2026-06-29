@@ -174,6 +174,11 @@ const actualSalesStorageKey = "remaxActualSalesRows";
 const registeredAgentsStorageKey = "remaxRegisteredAgents";
 const headOfficePaymentStorageKey = "remaxHeadOfficePaymentSettings";
 const seminarModeStorageKey = "remaxSeminarMode";
+const seminarFontStorageKey = "remaxSeminarFontPx";
+const SEMINAR_FONT_DEFAULT = 21; // セミナー表示の既定ルートフォント(px) = 100%
+const SEMINAR_FONT_MIN = 16;
+const SEMINAR_FONT_MAX = 34;
+const SEMINAR_FONT_STEP = 2;
 let actualSalesRows = [];
 const ALL_OFFICES = "__ALL__";
 const selfOfficeStorageKey = "remaxSelfOfficeName";
@@ -3939,6 +3944,28 @@ function setView(view) {
   });
 }
 
+function applySeminarFont(px, shouldSave = true) {
+  const clamped = Math.min(SEMINAR_FONT_MAX, Math.max(SEMINAR_FONT_MIN, Math.round(px)));
+  document.documentElement.style.setProperty("--seminar-font", clamped + "px");
+  const level = document.getElementById("seminarZoomLevel");
+  if (level) {
+    level.textContent = Math.round((clamped / SEMINAR_FONT_DEFAULT) * 100) + "%";
+  }
+  const down = document.getElementById("seminarZoomDown");
+  const up = document.getElementById("seminarZoomUp");
+  if (down) down.disabled = clamped <= SEMINAR_FONT_MIN;
+  if (up) up.disabled = clamped >= SEMINAR_FONT_MAX;
+  if (shouldSave) {
+    localStorage.setItem(seminarFontStorageKey, String(clamped));
+  }
+  return clamped;
+}
+
+function currentSeminarFont() {
+  const stored = Number(localStorage.getItem(seminarFontStorageKey));
+  return stored >= SEMINAR_FONT_MIN && stored <= SEMINAR_FONT_MAX ? stored : SEMINAR_FONT_DEFAULT;
+}
+
 function setSeminarMode(enabled, shouldSave = true) {
   const isEnabled = Boolean(enabled);
   document.body.dataset.seminar = isEnabled ? "true" : "false";
@@ -4064,6 +4091,15 @@ document.querySelectorAll(".view-tab").forEach((button) => {
 document.getElementById("seminarToggle").addEventListener("click", () => {
   setSeminarMode(document.body.dataset.seminar !== "true");
 });
+document.getElementById("seminarZoomDown").addEventListener("click", () => {
+  applySeminarFont(currentSeminarFont() - SEMINAR_FONT_STEP);
+});
+document.getElementById("seminarZoomUp").addEventListener("click", () => {
+  applySeminarFont(currentSeminarFont() + SEMINAR_FONT_STEP);
+});
+document.getElementById("seminarZoomLevel").addEventListener("click", () => {
+  applySeminarFont(SEMINAR_FONT_DEFAULT);
+});
 document.querySelectorAll(".preset").forEach((button) => {
   button.addEventListener("click", () => applyPreset(button.dataset.preset));
 });
@@ -4097,4 +4133,5 @@ renderRankPlanRows();
 setSourceStatus();
 renderRegisteredAgents();
 render();
+applySeminarFont(currentSeminarFont(), false);
 setSeminarMode(window.location.hash === "#seminar" || localStorage.getItem(seminarModeStorageKey) === "true", false);
