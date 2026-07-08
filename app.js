@@ -4135,3 +4135,22 @@ renderRegisteredAgents();
 render();
 applySeminarFont(currentSeminarFont(), false);
 setSeminarMode(window.location.hash === "#seminar" || localStorage.getItem(seminarModeStorageKey) === "true", false);
+
+// --- セミナープレーヤー連携：親ページ（説明会プレーヤー）へのキー転送 ---
+// iframe埋め込み時のみ有効。シミュにフォーカスがあると親がキーを受け取れないため、
+// スライド操作系のキーを postMessage で転送する。入力欄・ボタン等の操作中は転送しない。
+// ←→はスライド送り専用として既定動作を止める（シミュの縦スクロールは↑↓/PgUp/PgDnで）。
+if (window.parent !== window) {
+  const isInteractiveTarget = (el) =>
+    el && el.closest && el.closest("input, textarea, select, button, a, [contenteditable]");
+  document.addEventListener("keydown", (event) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (isInteractiveTarget(event.target)) return;
+    const key = event.key;
+    const forward = key === "ArrowLeft" || key === "ArrowRight" || key === "Enter" || key === "Escape" ||
+      (key >= "0" && key <= "9") || ["g", "G", "n", "N", "s", "S"].includes(key);
+    if (!forward) return;
+    if (key === "ArrowLeft" || key === "ArrowRight") event.preventDefault();
+    window.parent.postMessage({ type: "seminar-key", key: key }, "*");
+  });
+}
