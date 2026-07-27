@@ -3936,6 +3936,20 @@ function resetAll() {
   render();
 }
 
+// 事業前提の固定費だけをタブ既定値（最初に開いた時の金額）に戻す。
+// 全タブ（従来の不動産会社〜3,000万）対応。従来タブは選択中の経営タイプの既定値に戻す。
+// 採用計画・報酬設定・目標利益・ロイヤリティ%・オーナー取引額はそのまま維持する。
+const assumptionResetIds = ["ownerSalary", "rent", "officeFee", "adCoopFee", "officeStaff", "otherExpense", "generalExpense"];
+function resetAssumptions() {
+  const defaults = activePreset === "current"
+    ? { ...presets.current, ...(managementTypePresets[activeManagementType]?.values || {}) }
+    : presets[activePreset] || {};
+  assumptionResetIds.forEach((id) => {
+    if (inputs[id]) inputs[id].value = defaults[id] ?? 0;
+  });
+  render();
+}
+
 function setView(view) {
   const nextView = ["actual", "agents"].includes(view) ? view : "simulation";
   document.body.dataset.view = nextView;
@@ -4016,6 +4030,7 @@ document.addEventListener("focusin", prepareYenInput);
 document.addEventListener("focusout", formatYenInput);
 ids.forEach((id) => inputs[id].addEventListener("input", render));
 document.getElementById("resetButton").addEventListener("click", resetAll);
+document.getElementById("assumptionResetButton").addEventListener("click", resetAssumptions);
 const rankRowsElement = document.getElementById("rankRows");
 rankRowsElement.addEventListener("change", (event) => updateRankData(event.target));
 rankRowsElement.addEventListener("focusout", (event) => updateRankData(event.target));
