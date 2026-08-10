@@ -2048,7 +2048,7 @@ async function exportForPolaris() {
       await writeJsonToDir(dir, "office_actuals.json", actuals);
       await writeJsonToDir(dir, "office_monthly_reports.json", reports);
       renderActualCsvImportStatus(
-        `✅ POLARIS の src/data/ へ自動書込みしました（自社 ${actuals.monthly_sales.length}ヶ月 ／ 全${officeCount}オフィスのリージョン用データ）。POLARISを再読込すると反映されます。`
+        `✅ オフィス開発システムの src/data/ へ自動書込みしました（自社 ${actuals.monthly_sales.length}ヶ月 ／ 全${officeCount}オフィスのリージョン用データ）。オフィス開発システムを再読込すると反映されます。`
       );
       return;
     }
